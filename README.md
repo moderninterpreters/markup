@@ -1,9 +1,8 @@
 # markup
-### _Your Name <your.name@example.com>_
+### Arnold Noronha <arnold@tdrhq.com>
 
 This is a project to do ... something.
 
 ## License
 
-Specify license here
-
+Apache License, Version 2.0
