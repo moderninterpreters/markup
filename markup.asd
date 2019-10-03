@@ -9,8 +9,3 @@
   :depends-on (#:str #:named-readtables #:cl-who)
   :components ((:file "package")
                (:file "markup")))
-
-(defsystem "markup/tests"
-  :depends-on ("markup")
-  :serial t
-  :components ((:file "test-markup")))
