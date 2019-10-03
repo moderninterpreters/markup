@@ -75,6 +75,11 @@ that's not on our radar.
 We do not have editor support, even for Emacs, so indentation is going
 to be done manually by the developer.
 
+## See also
+
+XHP for PHP, and Scala both support HTML/XML inside of code for very similar
+motivations.
+
 ## License
 
 Apache License, Version 2.0
