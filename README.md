@@ -1,7 +1,13 @@
 # markup
 ### Arnold Noronha <arnold@tdrhq.com>
 
-This is a project to do ... something.
+Markup let's you write XML/HTML code inside of common lisp, for instance
+
+```lisp
+(let ((x "hello"))
+  <h1>,(progn x) world!</h1>)
+```
+
 
 ## License
 
