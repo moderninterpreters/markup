@@ -1,9 +1,9 @@
 ;;;; markup.asd
 
 (asdf:defsystem #:markup
-  :description "Describe markup here"
-  :author "Your Name <your.name@example.com>"
-  :license  "Specify license here"
+  :description "markup provides a reader-macro to read HTML/XML tags inside of Common Lisp code"
+  :author "Arnold Noronha <arnold@tdrhq.com>"
+  :license  "MIT License"
   :version "0.0.1"
   :serial t
   :depends-on (#:str #:named-readtables #:cl-who)

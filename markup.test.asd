@@ -1,7 +1,7 @@
 (defsystem :markup.test
-  :description "Describe markup here"
-  :author "Your Name <your.name@example.com>"
-  :license  "Specify license here"
+  :description "Tests for the markup library"
+  :author "Arnold Noronha <arnold@tdrhq.com>"
+  :license  "MIT License"
   :depends-on (:markup
                :fiveam)
   :serial t
