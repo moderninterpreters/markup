@@ -51,6 +51,8 @@ that's not on our radar.
 ## Full example with Hunchentoot
 
 ```lisp
+(markup:enable-reader)
+
 (markup:deftag template (children &key title)
   <html>
     <head>
