@@ -186,6 +186,7 @@
        'string))))
 
 (defun read-xml-after-bracket (stream char)
+  (declare (ignore char))
   (flet ((peek-next-char () (peek-char nil stream t nil t))
          (read-next-char () (read-char stream t nil t)))
     (let ((name (read-tag stream))
@@ -265,6 +266,7 @@
 
 
 (defun read-xml (stream char)
+  (declare (ignore char))
   (read-xml-after-bracket stream (peek-char nil stream t nil t)))
 
 (defreadtable syntax
