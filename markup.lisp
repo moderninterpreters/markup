@@ -133,9 +133,6 @@
 (defun read-attr-val (stream)
   (read-preserving-whitespace stream))
 
-(defun debug-peek (x &key (debug "peeked"))
-  x)
-
 (defun read-attributes (stream)
   (flet ((peek-next-char () (peek-char nil stream t nil t))
          (read-next-char () (read-char stream t nil t)))
