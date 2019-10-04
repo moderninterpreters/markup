@@ -18,6 +18,7 @@ For example, it might look like something like this:
 
 
 ```lisp
+;; CL-WHO syntax, not markup's
 (:p "hello" (:em "world") "!")
 ```
 
