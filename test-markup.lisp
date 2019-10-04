@@ -85,6 +85,7 @@
 
 
 (defun simple-wrapper (&key children attributes)
+  (declare (ignore children attributes))
   <div></div>)
 
 (test function-calls
@@ -125,6 +126,7 @@
          (markup:write-xml <div arg=val ></div>)))))
 
 (markup:deftag wrapper (children &key foo)
+  (declare (ignore children))
   <:h1>Foo was ,(progn foo)</:h1>)
 
 (test function-calls
@@ -136,6 +138,7 @@
        (markup:write-xml <wrapper></wrapper>))))
 
 (markup:deftag wrapper2 (children &key (foo "defaultvalue"))
+  (declare (ignore children))
   <:h1>Foo was ,(progn foo)</:h1>)
 
 (test function-calls-2
@@ -164,6 +167,7 @@
        (markup:write-xml <:h1>Hello, world</:h1>))))
 
 (markup:deftag without-key (children)
+  (declare (ignore children))
   <h1>hello world</h1>)
 
 (test without-key
