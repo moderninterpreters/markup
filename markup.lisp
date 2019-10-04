@@ -377,6 +377,7 @@
      (destructuring-bind (&key ,@args) (loop for x in attributes
                                           append (list (intern (string-upcase (car x)) "KEYWORD") (cdr x)))
        (let ((,children children))
+         (declare (ignorable ,children))
          ,@body))))
 
 (defmacro deftag (name (&rest args) &body body)
