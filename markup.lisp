@@ -1,3 +1,5 @@
+;; Copyright 2019, Modern Interpreters Inc
+
 (in-package #:markup)
 
 (defmacro enable-reader ()
