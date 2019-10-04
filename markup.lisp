@@ -133,6 +133,7 @@
 (defun read-attr-val (stream)
   (read-preserving-whitespace stream))
 
+
 (defun read-attributes (stream)
   (flet ((peek-next-char () (peek-char nil stream t nil t))
          (read-next-char () (read-char stream t nil t)))
@@ -153,6 +154,7 @@
                      ret)))))))
 
 (defun read-string-from-xml (stream next)
+  (declare (ignore next))
   (flet ((peek-next-char () (peek-char nil stream t nil t))
          (read-next-char () (read-char stream t nil t)))
     (coerce
