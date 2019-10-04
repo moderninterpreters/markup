@@ -67,7 +67,7 @@ that's not on our radar.
   (markup:write-xml
      <template title="Hello" >
         <h1>hello world!</h1>
-     </template>)
+     </template>))
 ```
 
 ## Editor support
