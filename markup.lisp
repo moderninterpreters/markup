@@ -381,6 +381,17 @@
          ,@body))))
 
 (defmacro deftag (name (&rest args) &body body)
+  "Define a new XML tag that.
+
+Tags are namespaced so you if you define a tag foo in namespace bar
+you can refer to it as <bar:foo>...</bar:foo>.
+
+The lambda-list has a very specific syntax: it must be: ([children [&key attr*]).
+
+If children is provided, it will be filled with the list of all
+child tags while parsing. For instance <bar:foo>x<h1>y</h1></bar:foo>, will
+set children as (\"x\" <h1>y</h1>).
+"
   (let ((args
          (cond
            ((not args) (list (gensym)))
