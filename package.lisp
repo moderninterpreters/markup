@@ -1,4 +1,4 @@
-;;;; package.lisp
+;; Copyright 2019, Modern Interpreters Inc
 
 (defpackage #:markup
   (:use #:cl

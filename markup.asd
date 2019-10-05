@@ -1,4 +1,4 @@
-;;;; markup.asd
+;; Copyright 2019, Modern Interpreters Inc
 
 (asdf:defsystem #:markup
   :description "markup provides a reader-macro to read HTML/XML tags inside of Common Lisp code"
