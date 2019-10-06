@@ -44,6 +44,7 @@
         "div"
         "script"
         "i"
+        "b"
         "em"
         "canvas"
         "img"
