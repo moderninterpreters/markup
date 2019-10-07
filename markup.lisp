@@ -45,6 +45,7 @@
         "script"
         "i"
         "b"
+        "ol"
         "em"
         "canvas"
         "img"
