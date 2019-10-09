@@ -40,7 +40,6 @@
          (list "blah"))
        (read-xml-from-string "<:foo>blah</:foo>"))))
 
-
 (test read-attributes
   (is (equal
        '(make-xml-tag :foo :attributes
@@ -70,10 +69,10 @@
 (test void-tag
   (is (equal
        "<br />"
-       (markup:write-xml <:br></:br>)))
+       (markup:write-xml <:br />)))
   (is (equal
        "<br />"
-       (markup:write-xml <br></br>))))
+       (markup:write-xml <br />))))
 
 (test write-xml-string
   (is (equal
@@ -210,6 +209,14 @@
     (is (equal
          "<body><h1></h1></body>"
          (markup:write-xml <:body>,(progn (markup:unescaped body))</:body>)))))
+
+(test reading-void-tags
+  (is (equal
+       "<img />"
+       (markup:write-xml <img>)))
+  (is (equal
+       "<p><img /></p>"
+       (markup:write-xml <p><img></p>))))
 
 (test comments
   (is (equal

@@ -214,7 +214,7 @@
         (read-next-char))
       (assert (eq #\> (read-next-char))) ;; to read #\>
 
-      (unless ends-with-slash
+      (unless (or ends-with-slash (void-tag? name))
         (block children-loop
           (loop
              (let ((next-char (peek-next-char)))
@@ -327,13 +327,17 @@
      do
        (format stream " ~A=~A" (car attr) (format-attr-val (cdr attr)))))
 
+(defun void-tag? (tag)
+  (let ((tag (if (stringp tag) (intern (string-upcase tag) "KEYWORD") tag )))
+   (member tag *void-tags*)))
+
 (defmethod write-xml-to-stream ((tree xml-tag) stream)
   (format stream "<~A" (string-downcase (xml-tag-name tree)))
 
   (write-attributes (xml-tag-attributes tree) stream)
 
   (cond
-    ((not (member (xml-tag-name tree) *void-tags*))
+    ((not (void-tag? (xml-tag-name tree)))
      (format stream ">")
      (loop for child in (xml-tag-children tree)
         do
