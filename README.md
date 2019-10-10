@@ -71,6 +71,16 @@ that's not on our radar.
      </template>))
 ```
 
+## Installation
+
+markup is available via quicklisp
+
+```lisp
+(ql:quickload "markup")
+```
+
+(If that doesn't load, make sure you update your dists, `(ql:update-all-dists)`)
+
 ## Editor support
 
 We do not have editor support, even for Emacs, so indentation is going
