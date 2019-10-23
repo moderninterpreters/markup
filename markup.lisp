@@ -177,13 +177,13 @@
             (progn
               (cond
                 ((eq (peek-next-char) #\-)
-                 (setq state (min (+ 1 state) 2)))
+                 (setf state (min (+ 1 state) 2)))
                 ((and
                   (eq (peek-next-char) #\>)
                   (eq state 2))
-                 (setq state 3))
+                 (setf state 3))
                 (t
-                 (setq state 0)))
+                 (setf state 0)))
               (read-next-char)))
        'string))))
 
@@ -206,11 +206,11 @@
           (return-from read-xml-after-bracket (list 'unescaped (concatenate 'string "<!--" (read-comment stream)))))
 
       (read-whitespace stream)
-      (setq attributes (read-attributes stream))
+      (setf attributes (read-attributes stream))
       (read-whitespace stream)
 
       (when (eq #\/ (peek-next-char))
-        (setq ends-with-slash t)
+        (setf ends-with-slash t)
         (read-next-char))
       (assert (eq #\> (read-next-char))) ;; to read #\>
 
@@ -237,7 +237,7 @@
                  (t
                   (push (read-string-from-xml stream next-char) children))))))
 
-        (setq children (reverse children))
+        (setf children (reverse children))
 
         ;; now we reach the /name> part of this, so let's read it out
         (let ((next-char (read-next-char)))
@@ -255,7 +255,7 @@
 
       (let ((ret (list 'make-xml-tag (tag-name-to-symbol name))))
         (when attributes
-          (setq ret
+          (setf ret
                 (append ret
                         (list
                          :attributes
@@ -263,7 +263,7 @@
                            ,@(loop for att in attributes
                                 collect `(cons ,(car att) ,(cdr att))))))))
         (when children
-          (setq ret (append ret (list :children `(list ,@children)))))
+          (setf ret (append ret (list :children `(list ,@children)))))
         ret))))
 
 
