@@ -204,7 +204,7 @@
          "<h1 arg=\"&quot;body&quot;\">foo</h1>"
          (markup:write-xml <:h1 arg=(progn body)>foo</:h1>)))))
 
-(test unescaped-string-22222
+(test unescaped-string
   (let ((body "<h1></h1>"))
     (is (equal
          "<body><h1></h1></body>"
