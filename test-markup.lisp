@@ -230,5 +230,12 @@
 
 (test default-escaping
   (is (equal
-       "<body>News & Events</body>"
-       (markup:write-xml <body>News & Events</body>))))
+       "<body>News &amp; Events</body>"
+       (markup:write-xml <body>News &amp; Events</body>
+                         ))))
+
+(test but-escapes-inline-commas
+  (let ((val "News & Events"))
+    (is (equal
+         "<body>News &amp; Events</body>"
+         (markup:write-xml <body>,(progn val)</body>)))))
