@@ -100,19 +100,6 @@
          (markup:write-xml <div>blah</div>)
          (markup:write-xml <div>,(progn val)</div>)))))
 
-(test escaping-without-progn
-  (let ((val "blah"))
-    (is (equal
-         (markup:write-xml <div>blah </div>)
-         (markup:write-xml <div>,val </div>)))))
-
-(test not-escaping-comma-and-whitespace
-  (let ((val "blah"))
-    (is (equal
-         (markup:write-xml <div>, val</div>)
-         (markup:write-xml <div>, val</div>)))))
-
-
 (test escaping-in-between
   (let ((val "blah"))
     (is (equal
