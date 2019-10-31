@@ -234,7 +234,7 @@
                     ((eq #\@ (peek-next-char))
                      (read-next-char)
                      (push (list 'make-merge-tag (read-preserving-whitespace stream)) children))
-                    ((eq #\( (peek-next-char))
+                    ((not (whitespacep (peek-next-char)))
                      (push `(make-escaped ,(read-preserving-whitespace stream)) children ))
                     (t
                      (push "," children))))
