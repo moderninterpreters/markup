@@ -235,7 +235,7 @@
                      (read-next-char)
                      (push (list 'make-merge-tag (read-preserving-whitespace stream)) children))
                     ((eq #\( (peek-next-char))
-                     (push (read-preserving-whitespace stream) children))
+                     (push `(make-escaped ,(read-preserving-whitespace stream)) children ))
                     (t
                      (push "," children))))
                  (t
@@ -352,7 +352,7 @@
 
 
 (defmethod write-xml-to-stream ((tree string) stream)
-  (format stream "~A" (cl-who:escape-string-minimal tree)))
+  (format stream "~A" tree))
 
 (defmethod write-xml-to-stream ((tree xml-merge-tag) stream)
   (loop for child in (xml-tag-children tree)
@@ -413,8 +413,26 @@ set children as (\"x\" <h1>y</h1>).
 (defclass unescaped-string ()
   ((content :initarg :content :accessor unescaped-string-content)))
 
+(defclass escaped-string ()
+  ((content :initarg :content :accessor escaped-string-content)))
+
+(defun make-escaped (child)
+  (make-instance 'escaped-string
+                 :content child))
+
 (defmethod write-xml-to-stream ((tree unescaped-string) stream)
   (format stream "~a" (unescaped-string-content tree)))
+
+(defmethod write-xml-to-stream ((tree escaped-string) stream)
+  (let ((content (escaped-string-content tree)))
+    (case (type-of content)
+      ('unescaped-string (write-xml-to-stream content stream))
+      ('xml-tag (write-xml-to-stream content stream))
+      ('xml-merge-tag (write-xml-to-stream content stream))
+      (t
+       ;; else we need to escape this before writing
+       (when content
+        (format stream "~A" (cl-who:escape-string-minimal content)))))))
 
 (defmethod print-object ((tree unescaped-string) stream)
   (write-xml-to-stream tree stream))

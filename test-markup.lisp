@@ -94,7 +94,6 @@
        (markup:write-xml <div></div>)
        (markup:write-xml <simple-wrapper></simple-wrapper>))))
 
-
 (test escaping
   (let ((val "blah"))
     (is (equal
@@ -227,3 +226,9 @@
   (is (equal
        "<body></body>"
        (markup:write-xml <:body/>))))
+
+
+(test default-escaping
+  (is (equal
+       "<body>News & Events</body>"
+       (markup:write-xml <body>News & Events</body>))))
