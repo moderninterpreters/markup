@@ -46,6 +46,7 @@
                         :div
                         :script
                         :i
+                        :header
                         :b
                         :ol
                         :em
