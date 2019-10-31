@@ -432,7 +432,7 @@ set children as (\"x\" <h1>y</h1>).
       (t
        ;; else we need to escape this before writing
        (when content
-        (format stream "~A" (cl-who:escape-string-minimal content)))))))
+         (format stream "~A" (who:escape-string-minimal (format nil "~A" content))))))))
 
 (defmethod print-object ((tree unescaped-string) stream)
   (write-xml-to-stream tree stream))
