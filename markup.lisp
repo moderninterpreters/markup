@@ -328,6 +328,7 @@
 
 (defun write-attributes (attributes stream)
   (loop for attr in attributes
+     if (cdr attr)
      do
        (format stream " ~A=~A" (car attr) (format-attr-val (cdr attr)))))
 
