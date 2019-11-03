@@ -317,6 +317,7 @@
 
 (defun write-xml (tree)
   (let ((stream (make-string-output-stream)))
+    (format stream "<!DOCTYPE html>~%")
     (write-xml-to-stream tree stream)
     (get-output-stream-string stream)))
 
