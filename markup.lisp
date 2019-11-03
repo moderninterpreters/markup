@@ -317,7 +317,6 @@
 
 (defun write-xml (tree)
   (let ((stream (make-string-output-stream)))
-    (format stream "<!DOCTYPE html>~%")
     (write-xml-to-stream tree stream)
     (get-output-stream-string stream)))
 
@@ -338,7 +337,10 @@
    (member tag *void-tags*)))
 
 (defmethod write-xml-to-stream ((tree xml-tag) stream)
-  (format stream "<~A" (string-downcase (xml-tag-name tree)))
+  (let ((tag-name (string-downcase (xml-tag-name tree))))
+    (when (equal tag-name "html")
+      (format stream "<!DOCTYPE html>~%"))
+    (format stream "<~A" tag-name))
 
   (write-attributes (xml-tag-attributes tree) stream)
 
