@@ -103,6 +103,30 @@ Certain tag names are treated as special (`<b>`, `<body>` etc.) since they're HT
 If you want to output the equivalent HTML element for a tag that isn't
 treated as special you can also specify the tag using keyword symbols `<:foo>..</:foo>`.
 
+### How do you embed lisp code in markup?
+
+You have already seen some examples in this README. Use `,(...)` to
+escape some lisp code that returns a single element, or ,@sexp that
+returns a list of elements. (Side note, we really don't need to have
+both of these, but it matches the backquote syntax much better this
+way).
+
+You can also embed lisp code as attribute values.
+
+```lisp
+  <a href=(generate-url ...) >...</a>
+```
+
+That is, any expression after the an attribute is read using the
+standard Lisp reader. A small caveat to this is that in some cases you need to have a space after the ending `>`. For instance the following will result in an error:
+
+```lisp
+   ;; bad code
+   <a href=url-var>...</a>
+   ;; correct code
+   <a href=url-var >...</a>
+```
+
 ## See also
 
 XHP for PHP, and Scala both support HTML/XML inside of code for very similar
