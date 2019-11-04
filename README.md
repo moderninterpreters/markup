@@ -1,7 +1,7 @@
 # markup
 ### Arnold Noronha <arnold@tdrhq.com>
 
-Markup let's you write XML/HTML code inside of common lisp, for instance
+Markup let's you write HTML code inside of common lisp, for instance
 
 ```lisp
 (let ((x "hello"))
@@ -133,7 +133,7 @@ Yes it is! Right now it's used on several websites we've built. Granted, they're
 
 ## See also
 
-XHP for PHP, and Scala both support HTML/XML inside of code for very similar
+XHP for PHP, and Scala both support HTML inside of code for very similar
 motivations.
 
 ## License
