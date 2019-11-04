@@ -88,13 +88,13 @@ to be done manually by the developer.
 
 ## FAQ
 
-* What about expressions like `(< x 2)`?
+### What about expressions like `(< x 2)`?
 
 Markdown requires tags to follow the `<` operator, otherwise (or if it's `<=`) treats it as a symbol.
 
 To simplify editor support in the future, we recommend a style guide of using `(|<| x 2)` in markup enabled code.
 
-* Are custom tags namespaced?
+### Are custom tags namespaced?
 
 Of course, custom tags are just lisp symbols. So you can define a tag like `<admin:template>...</admin:template>`.
 
