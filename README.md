@@ -86,6 +86,23 @@ markup is available via quicklisp
 We do not have editor support, even for Emacs, so indentation is going
 to be done manually by the developer.
 
+## FAQ
+
+* What about expressions like `(< x 2)`?
+
+Markdown requires tags to follow the `<` operator, otherwise (or if it's `<=`) treats it as a symbol.
+
+To simplify editor support in the future, we recommend a style guide of using `(|<| x 2)` in markup enabled code.
+
+* Are custom tags namespaced?
+
+Of course, custom tags are just lisp symbols. So you can define a tag like `<admin:template>...</admin:template>`.
+
+Certain tag names are treated as special (`<b>`, `<body>` etc.) since they're HTML elements.
+
+If you want to output the equivalent HTML element for a tag that isn't
+treated as special you can also specify the tag using keyword symbols `<:foo>..</:foo>`.
+
 ## See also
 
 XHP for PHP, and Scala both support HTML/XML inside of code for very similar
