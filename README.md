@@ -127,6 +127,10 @@ standard Lisp reader. A small caveat to this is that in some cases you need to h
    <a href=url-var >...</a>
 ```
 
+### Is markup used in production?
+
+Yes it is! Right now it's used on several websites we've built. Granted, they're not high-traffic (for now), but they've solved a lot of our use cases reliably.
+
 ## See also
 
 XHP for PHP, and Scala both support HTML/XML inside of code for very similar
