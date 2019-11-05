@@ -47,6 +47,7 @@
                         :script
                         :i
                         :header
+                        :template
                         :b
                         :ol
                         :em
@@ -99,13 +100,15 @@
                         :style))))
 
 (defun tag-name-to-symbol (name)
-  (let ((name (string-downcase name)))
-   (if (member name *standard-names* :test #'equal)
+  (let ((name (string-downcase name))
+        (sym (read-from-string name)))
+    (if (and
+         (not (fboundp sym))
+         (member name *standard-names* :test #'equal))
        (intern  (string-upcase name) "KEYWORD")
-       (let ((sym (read-from-string name)))
-         (cond
-           ((keywordp sym) sym)
-           (t (list 'quote sym)))))))
+       (cond
+         ((keywordp sym) sym)
+         (t (list 'quote sym))))))
 
 
 (defun whitespacep (char)
