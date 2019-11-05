@@ -6,12 +6,14 @@
   (:export #:read-xml
            #:make-xml-tag
            #:make-merge-tag
-           #:write-xml
+           #:write-xml ;; deprecated
+           #:write-html
            #:unescaped
            #:enable-reader
-           #:write-xml-to-stream
+           #:write-xml-to-stream ;; deprecated
+           #:write-html-to-stream
            #:deftag
-           #:write-xml-to-stdout
+           #:write
            #:syntax
            #:markup-enable-reader
            #:read-xml-from-string))

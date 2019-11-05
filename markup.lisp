@@ -309,15 +309,15 @@
          (setf args (append (list :attributes attributes) args)))
        (apply (fdefinition name) args)))))
 
-(defgeneric write-xml-to-stream (tree stream))
+(defgeneric write-html-to-stream (tree stream))
 
-(defmethod write-xml-to-stream ((tree integer) stream)
+(defmethod write-html-to-stream ((tree integer) stream)
   (format stream "~A" tree))
 
 
-(defun write-xml (tree)
+(defun write-html (tree)
   (let ((stream (make-string-output-stream)))
-    (write-xml-to-stream tree stream)
+    (write-html-to-stream tree stream)
     (get-output-stream-string stream)))
 
 (defun format-attr-val (val)
@@ -336,7 +336,7 @@
   (let ((tag (if (stringp tag) (intern (string-upcase tag) "KEYWORD") tag )))
    (member tag *void-tags*)))
 
-(defmethod write-xml-to-stream ((tree xml-tag) stream)
+(defmethod write-html-to-stream ((tree xml-tag) stream)
   (let ((tag-name (string-downcase (xml-tag-name tree))))
     (when (equal tag-name "html")
       (format stream "<!DOCTYPE html>~%"))
@@ -349,30 +349,27 @@
      (format stream ">")
      (loop for child in (xml-tag-children tree)
         do
-          (write-xml-to-stream child stream))
+          (write-html-to-stream child stream))
      (format stream "</~A>" (string-downcase (xml-tag-name tree))))
     (t
      (format stream " />"))))
 
 
-(defmethod write-xml-to-stream ((tree string) stream)
+(defmethod write-html-to-stream ((tree string) stream)
   (format stream "~A" tree))
 
-(defmethod write-xml-to-stream ((tree xml-merge-tag) stream)
+(defmethod write-html-to-stream ((tree xml-merge-tag) stream)
   (loop for child in (xml-tag-children tree)
      do
-       (write-xml-to-stream child stream)))
+       (write-html-to-stream child stream)))
 
-(defmethod write-xml-to-stream ((tree (eql nil)) stream))
-
-(defun write-xml-to-stdout (tree)
-  (write-xml-to-stream tree *standard-output*))
+(defmethod write-html-to-stream ((tree (eql nil)) stream))
 
 (defmethod print-object ((tree xml-tag) stream)
-  (write-xml-to-stream tree stream))
+  (write-html-to-stream tree stream))
 
 (defmethod print-object ((tree xml-merge-tag) stream)
-  (write-xml-to-stream tree stream))
+  (write-html-to-stream tree stream))
 
 (defun deftag-symbol (arg)
   (cond
@@ -424,22 +421,29 @@ set children as (\"x\" <h1>y</h1>).
   (make-instance 'escaped-string
                  :content child))
 
-(defmethod write-xml-to-stream ((tree unescaped-string) stream)
+(defmethod write-html-to-stream ((tree unescaped-string) stream)
   (format stream "~a" (unescaped-string-content tree)))
 
-(defmethod write-xml-to-stream ((tree escaped-string) stream)
+(defmethod write-html-to-stream ((tree escaped-string) stream)
   (let ((content (escaped-string-content tree)))
     (case (type-of content)
-      ('unescaped-string (write-xml-to-stream content stream))
-      ('xml-tag (write-xml-to-stream content stream))
-      ('xml-merge-tag (write-xml-to-stream content stream))
+      ('unescaped-string (write-html-to-stream content stream))
+      ('xml-tag (write-html-to-stream content stream))
+      ('xml-merge-tag (write-html-to-stream content stream))
       (t
        ;; else we need to escape this before writing
        (when content
          (format stream "~A" (who:escape-string-minimal (format nil "~A" content))))))))
 
 (defmethod print-object ((tree unescaped-string) stream)
-  (write-xml-to-stream tree stream))
+  (write-html-to-stream tree stream))
 
 (defun unescaped (string)
   (make-instance 'unescaped-string :content string))
+
+;; deprecated wrappers for now
+(defun write-xml (tree)
+  (write-html tree))
+
+(defun write-xml-to-stream (tree stream)
+  (write-html-to-stream tree stream))
