@@ -316,9 +316,8 @@
 
 
 (defun write-html (tree)
-  (let ((stream (make-string-output-stream)))
-    (write-html-to-stream tree stream)
-    (get-output-stream-string stream)))
+  (with-output-to-string (stream)
+    (write-html-to-stream tree stream)))
 
 (defun format-attr-val (val)
   (if val
