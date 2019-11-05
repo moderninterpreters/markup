@@ -332,10 +332,17 @@
      do
        (format stream " ~A=~A" (car attr) (format-attr-val (cdr attr)))))
 
+(defparameter *void-tag-cache* (make-hash-table))
+
 (defun void-tag? (tag)
-  (let ((tag (if (stringp tag) (string-upcase tag)
-                 (symbol-name tag))))
-   (member tag *void-tags* :test 'equal)))
+  (multiple-value-bind (res present-p) (gethash tag *void-tag-cache*)
+    (cond
+      (present-p res)
+      (t
+       (setf (gethash tag *void-tag-cache*)
+             (let ((tag (if (stringp tag) (string-upcase tag)
+                            (symbol-name tag))))
+               (member tag *void-tags* :test 'equal)))))))
 
 (defmethod write-html-to-stream ((tree xml-tag) stream)
   (let ((tag-name (string-downcase (xml-tag-name tree))))
