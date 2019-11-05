@@ -21,95 +21,89 @@
      'string)))
 
 (defparameter *void-tags*
-  (list :br
-        :hr
-        :img
-        :input
-        :link
-        :meta
-        :area
-        :base
-        :col
-        :command
-        :embed
-        :keygen
-        :param
-        :source
-        :track
-        :wbr))
+  (mapcar #'symbol-name
+   (list :br
+         :hr
+         :img
+         :input
+         :link
+         :meta
+         :area
+         :base
+         :col
+         :command
+         :embed
+         :keygen
+         :param
+         :source
+         :track
+         :wbr)))
 
 
 (defvar *standard-names*
-  (mapcar #'string-downcase
-          (mapcar #'symbol-name
-                  (list :span
-                        :div
-                        :script
-                        :i
-                        :header
-                        :template
-                        :b
-                        :ol
-                        :em
-                        :canvas
-                        :img
-                        :path
-                        :hidden
-                        :svg
-                        :polygon
-                        :g
-                        :rect
-                        :nav
-                        :section
-                        :footer
-                        :strong
-                        :a
-                        :h1
-                        :h2
-                        :th
-                        :thead
-                        :br
-                        :meta
-                        :title
-                        :link
-                        :table
-                        :head
-                        :td
-                        :tr
-                        :body
-                        :html
-                        :li
-                        :form
-                        :input
-                        :button
-                        :ul
-                        :h3
-                        :h4
-                        :label
-                        :small
-                        :option
-                        :select
-                        :h5
-                        :h6
-                        :p
-                        :hr
-                        :textarea
-                        :a
-                        :tt
-                        :bold
-                        :style))))
+  (mapcar #'symbol-name
+          (list :span
+                :div
+                :script
+                :i
+                :header
+                :template
+                :b
+                :ol
+                :em
+                :canvas
+                :img
+                :path
+                :hidden
+                :svg
+                :polygon
+                :g
+                :rect
+                :nav
+                :section
+                :footer
+                :strong
+                :a
+                :h1
+                :h2
+                :th
+                :thead
+                :br
+                :meta
+                :title
+                :link
+                :table
+                :head
+                :td
+                :tr
+                :body
+                :html
+                :li
+                :form
+                :input
+                :button
+                :ul
+                :h3
+                :h4
+                :label
+                :small
+                :option
+                :select
+                :h5
+                :h6
+                :p
+                :hr
+                :textarea
+                :a
+                :tt
+                :bold
+                :style)))
 
-(defun tag-name-to-symbol (name)
-  (let ((name (string-downcase name))
-        (sym (read-from-string name)))
-    (if (and
-         (not (fboundp sym))
-         (member name *standard-names* :test #'equal))
-       (intern  (string-upcase name) "KEYWORD")
-       (cond
-         ((keywordp sym) sym)
-         (t (list 'quote sym))))))
-
+(defun read-tag-from-string (name)
+  (let ((name (read-from-string name)))
+    (cond
+      ((keywordp name) name)
+      (t (list 'quote name)))))
 
 (defun whitespacep (char)
   (or
@@ -260,7 +254,7 @@
             (error "not terminating with >")))
 
 
-      (let ((ret (list 'make-xml-tag (tag-name-to-symbol name))))
+      (let ((ret (list 'make-xml-tag (read-tag-from-string name))))
         (when attributes
           (setf ret
                 (append ret
@@ -299,7 +293,10 @@
 
 (defun make-xml-tag (name &key children attributes)
   (cond
-    ((keywordp name)
+    ((or
+      (keywordp name)
+      (and (not (fboundp name))
+           (member (symbol-name name) *standard-names* :test 'equal)))
      (make-instance 'xml-tag :name name
                     :children children
                     :attributes attributes))
@@ -336,8 +333,9 @@
        (format stream " ~A=~A" (car attr) (format-attr-val (cdr attr)))))
 
 (defun void-tag? (tag)
-  (let ((tag (if (stringp tag) (intern (string-upcase tag) "KEYWORD") tag )))
-   (member tag *void-tags*)))
+  (let ((tag (if (stringp tag) (string-upcase tag)
+                 (symbol-name tag))))
+   (member tag *void-tags* :test 'equal)))
 
 (defmethod write-html-to-stream ((tree xml-tag) stream)
   (let ((tag-name (string-downcase (xml-tag-name tree))))
