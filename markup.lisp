@@ -296,7 +296,7 @@
     ((or
       (keywordp name)
       (and (not (fboundp name))
-           (member (symbol-name name) *standard-names* :test 'equal)))
+           (standard-name? name)))
      (make-instance 'xml-tag :name name
                     :children children
                     :attributes attributes))
@@ -329,7 +329,10 @@
   (loop for attr in attributes
      if (cdr attr)
      do
-       (format stream " ~A=~A" (car attr) (format-attr-val (cdr attr)))))
+       (write-char #\Space stream)
+       (write-string (car attr) stream)
+       (write-char #\= stream)
+       (write-string (format-attr-val (cdr attr)) stream)))
 
 (defparameter *void-tag-cache* (make-hash-table))
 
@@ -342,6 +345,16 @@
              (let ((tag (if (stringp tag) (string-upcase tag)
                             (symbol-name tag))))
                (member tag *void-tags* :test 'equal)))))))
+
+(defvar *standard-name-cache* (make-hash-table))
+
+(defun standard-name? (tag)
+  (multiple-value-bind (res present-p) (gethash tag *standard-name-cache*)
+    (cond
+      (present-p res)
+      (t
+       (setf (gethash tag *standard-name-cache*)
+             (member (symbol-name tag) *standard-names* :test 'equal))))))
 
 (defmethod write-html-to-stream ((tree xml-tag) stream)
   (let ((tag-name (string-downcase (xml-tag-name tree))))
