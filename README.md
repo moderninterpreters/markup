@@ -133,8 +133,15 @@ Yes it is! Right now it's used on several websites we've built. Granted, they're
 
 ## See also
 
-XHP for PHP, and Scala both support HTML inside of code for very similar
+XHP for PHP, and JSX for React both support HTML inside of code for very similar
 motivations.
+
+@fukamachi released [LSX](https://github.com/fukamachi/lsx) in the
+same Quicklisp release that markup came out (although his repo goes
+back much longer, around the time I first started working on Markup
+internally.). Functionally, it's super similar to Markup and Fukamachi
+is a pretty fantastic Lisper, and maybe in the future we should
+consolidate.
 
 ## License
 
