@@ -197,13 +197,13 @@
           children
           attributes)
 
-      (if (equal name "")
+      (if (string= name "")
           (return-from read-xml-after-bracket (intern "<" "CL")))
 
-      (if (equal name "=")
+      (if (string= name "=")
           (return-from read-xml-after-bracket (intern "<=" "CL")))
 
-      (if (equal name "!--")
+      (if (string= name "!--")
           (return-from read-xml-after-bracket (list 'unescaped (concatenate 'string "<!--" (read-comment stream)))))
 
       (read-whitespace stream)
@@ -344,7 +344,7 @@
        (setf (gethash tag *void-tag-cache*)
              (let ((tag (if (stringp tag) (string-upcase tag)
                             (symbol-name tag))))
-               (member tag *void-tags* :test 'equal)))))))
+               (member tag *void-tags* :test 'string=)))))))
 
 (defvar *standard-name-cache* (make-hash-table))
 
@@ -354,7 +354,7 @@
       (present-p res)
       (t
        (setf (gethash tag *standard-name-cache*)
-             (member (symbol-name tag) *standard-names* :test 'equal))))))
+             (member (symbol-name tag) *standard-names* :test 'string=))))))
 
 (defmethod write-html-to-stream ((tree xml-tag) stream)
   (let ((tag-name (xml-tag-name tree)))
