@@ -357,8 +357,8 @@
              (member (symbol-name tag) *standard-names* :test 'equal))))))
 
 (defmethod write-html-to-stream ((tree xml-tag) stream)
-  (let ((tag-name (string-downcase (xml-tag-name tree))))
-    (when (equal tag-name "html")
+  (let ((tag-name (xml-tag-name tree)))
+    (when (string= tag-name "HTML")
       (format stream "<!DOCTYPE html>~%"))
     (format stream "<~A" tag-name))
 
@@ -370,7 +370,7 @@
      (loop for child in (xml-tag-children tree)
         do
           (write-html-to-stream child stream))
-     (format stream "</~A>" (string-downcase (xml-tag-name tree))))
+     (format stream "</~A>" (xml-tag-name tree)))
     (t
      (format stream " />"))))
 
