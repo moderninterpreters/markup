@@ -215,7 +215,7 @@
         (read-next-char))
       (assert (eq #\> (read-next-char))) ;; to read #\>
 
-      (unless (or ends-with-slash (void-tag? name))
+      (unless (or ends-with-slash (void-tag? (intern (string-upcase name) "KEYWORD")))
         (block children-loop
           (loop
              (let ((next-char (peek-next-char)))
@@ -340,6 +340,7 @@
 (defparameter *void-tag-cache* (make-hash-table))
 
 (defun void-tag? (tag)
+  (declare (type symbol tag))
   (declare (optimize speed 3))
   (multiple-value-bind (res present-p) (gethash tag *void-tag-cache*)
     (cond
