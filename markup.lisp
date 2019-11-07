@@ -320,10 +320,12 @@
   (with-output-to-string (stream)
     (write-html-to-stream tree stream)))
 
-(defun format-attr-val (val)
-  (if val
-      (format nil "\"~A\"" (cl-who:escape-string (format nil "~a" val)))
-      "\"\""))
+(defun format-attr-val (stream val)
+  (let ((val (cond
+               ((null val) "")
+               ((stringp val) val)
+               (t (format nil "~a" val)))))
+   (format stream "\"~A\"" (cl-who:escape-string val))))
 
 
 (defun write-attributes (attributes stream)
@@ -335,7 +337,7 @@
        (write-char #\Space stream)
        (write-string (car attr) stream)
        (write-char #\= stream)
-       (write-string (format-attr-val (cdr attr)) stream))))
+       (format-attr-val stream (cdr attr)) stream)))
 
 (defparameter *void-tag-cache* (make-hash-table))
 
