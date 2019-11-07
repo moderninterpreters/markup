@@ -285,11 +285,11 @@
   (children nil :type (or null cons))
   (name 'dummy :type symbol))
 
-(defclass xml-merge-tag ()
-  ((children :initarg :children :accessor xml-merge-tag-children :type (or null cons))))
+(defstruct xml-merge-tag
+  (children nil :type (or null cons)))
 
 (defun make-merge-tag (children)
-  (make-instance 'xml-merge-tag :children children))
+  (make-xml-merge-tag :children children))
 
 (defun make-xml-tag (name &key children attributes)
   (declare (type symbol name))
