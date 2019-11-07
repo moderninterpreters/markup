@@ -13,8 +13,8 @@
         until
            (or
             (whitespacep (peek-next-char))
-            (eq (peek-next-char) #\/)
-            (eq (peek-next-char) #\>))
+            (eql (peek-next-char) #\/)
+            (eql (peek-next-char) #\>))
         collect
           (progn
             (read-next-char)))
@@ -215,9 +215,9 @@
 
 (defun whitespacep (char)
   (or
-   (eq char #\Space)
-   (eq char #\Newline)
-   (eq char #\Linefeed)))
+   (eql char #\Space)
+   (eql char #\Newline)
+   (eql char #\Linefeed)))
 
 (defun read-whitespace (stream)
   (flet ((peek-next-char () (peek-char nil stream t nil t))
@@ -233,9 +233,9 @@
     (coerce
      (loop
         until  (or
-                (eq #\= (peek-next-char))
-                (eq #\/ (peek-next-char))
-                (eq #\> (peek-next-char)))
+                (eql #\= (peek-next-char))
+                (eql #\/ (peek-next-char))
+                (eql #\> (peek-next-char)))
 
 
         collect (read-next-char))
@@ -251,14 +251,14 @@
     (read-whitespace stream)
     (loop
        until (or
-              (eq (peek-next-char) #\>)
-              (eq (peek-next-char) #\/))
+              (eql (peek-next-char) #\>)
+              (eql (peek-next-char) #\/))
        collect
          (let ((attr-key (read-attr-key stream)))
            (cons attr-key
                  (progn
                    (let ((next-char (read-next-char)))
-                     (assert (eq #\= next-char)
+                     (assert (eql #\= next-char)
                              () "expected = after attribute ~S" attr-key))
                    (let ((ret (read-attr-val stream)))
                      (read-whitespace stream)
@@ -271,8 +271,8 @@
     (coerce
      (loop
         until (or
-               (eq (peek-next-char) #\<)
-               (eq (peek-next-char) #\,))
+               (eql (peek-next-char) #\<)
+               (eql (peek-next-char) #\,))
         collect (read-next-char))
      'string)))
 
@@ -285,11 +285,11 @@
           collect
             (progn
               (cond
-                ((eq (peek-next-char) #\-)
+                ((eql (peek-next-char) #\-)
                  (setf state (min (+ 1 state) 2)))
                 ((and
-                  (eq (peek-next-char) #\>)
-                  (eq state 2))
+                  (eql (peek-next-char) #\>)
+                  (eql state 2))
                  (setf state 3))
                 (t
                  (setf state 0)))
@@ -318,28 +318,28 @@
       (setf attributes (read-attributes stream))
       (read-whitespace stream)
 
-      (when (eq #\/ (peek-next-char))
+      (when (eql #\/ (peek-next-char))
         (setf ends-with-slash t)
         (read-next-char))
-      (assert (eq #\> (read-next-char))) ;; to read #\>
+      (assert (eql #\> (read-next-char))) ;; to read #\>
 
       (unless (or ends-with-slash (void-tag? (intern (string-upcase name) "KEYWORD")))
         (block children-loop
           (loop
              (let ((next-char (peek-next-char)))
                (cond
-                 ((eq #\< next-char)
+                 ((eql #\< next-char)
                   (read-next-char)
-                  (when (eq (peek-next-char) #\/)
+                  (when (eql (peek-next-char) #\/)
                     (return-from children-loop))
                   (push (read-xml-after-bracket stream (peek-next-char)) children))
-                 ((eq #\, next-char)
+                 ((eql #\, next-char)
                   (read-next-char)
                   (cond
-                    ((eq #\@ (peek-next-char))
+                    ((eql #\@ (peek-next-char))
                      (read-next-char)
                      (push (list 'make-merge-tag (read-preserving-whitespace stream)) children))
-                    ((eq #\( (peek-next-char))
+                    ((eql #\( (peek-next-char))
                      (push `(make-escaped ,(read-preserving-whitespace stream)) children ))
                     (t
                      (push "," children))))
@@ -350,7 +350,7 @@
 
         ;; now we reach the /name> part of this, so let's read it out
         (let ((next-char (read-next-char)))
-          (unless (eq #\/ next-char)
+          (unless (eql #\/ next-char)
             (error "expected to see a terminating element, got ~A" next-char)))
 
         (let ((end-name (read-tag stream)))
@@ -358,7 +358,7 @@
             (error "ending of xml element doesn't match, got ~A instead of ~A" end-name name )))
 
         ;; read the #\>
-        (if (not (eq #\> (read-next-char)))
+        (if (not (eql #\> (read-next-char)))
             (error "not terminating with >")))
 
 
@@ -564,7 +564,7 @@
 
 
 (defmacro %deftag (name (children &optional (key-attr '&key) &rest args) &body body)
-  (assert (eq '&key key-attr))
+  (assert (eql '&key key-attr))
   `(defun ,name (&key (attributes nil) (children nil))
      (destructuring-bind (&key ,@args) (loop for x in attributes
                                           append (list (intern (string-upcase (car x)) "KEYWORD") (cdr x)))
@@ -587,7 +587,7 @@ set children as (\"x\" <h1>y</h1>).
   (let ((args
          (cond
            ((not args) (list (gensym)))
-           ((eq '&key (car args)) (cons (gensym) args))
+           ((eql '&key (car args)) (cons (gensym) args))
            (t args))))
     `(%deftag ,name (,@args) ,@body)))
 
