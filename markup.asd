@@ -7,7 +7,6 @@
   :version "0.0.1"
   :serial t
   :depends-on (#:str
-               #:named-readtables
-               #:cl-who)
+               #:named-readtables)
   :components ((:file "package")
                (:file "markup")))

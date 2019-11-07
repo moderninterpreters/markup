@@ -320,13 +320,50 @@
   (with-output-to-string (stream)
     (write-html-to-stream tree stream)))
 
+(defmacro make-escape-map (&rest alist)
+  `(let ((ar (make-array 32000 :element-type '(or null string) :initial-element nil)))
+     (loop for (char . escaped) in ',alist
+        do (setf (aref ar (char-code char)) escaped))
+     ar))
+
+(defparameter *escape-map*
+  (make-escape-map (#\& . "&amp;")
+                   (#\< . "&lt;")
+                   (#\> . "&gt;")
+                   (#\" . "&quot;")
+                   (#\' . "&#39;")))
+
+
+;; this mapping is taken from CL-WHO's escape-char-minimal
+(defparameter *escape-minimal-map*
+  (make-escape-map (#\& . "&amp;")
+                   (#\< . "&lt;")
+                   (#\> . "&gt;")))
+
+;; This function was copied and tweaked from LSX. Previously I
+;; depended on CL-WHO for escaping, but this is better.
+(defun print-escaped-text (value stream &optional (escape-map *escape-map*))
+  (declare (type string value))
+  (declare (type array escape-map))
+  (declare (optimize speed))
+  (loop for char of-type character across value
+     for escaped = (aref escape-map (char-code char))
+     if escaped
+     do (write-string escaped stream)
+     else do (write-char char stream)))
+
+(defun print-escaped-text-minimal (value stream)
+  (print-escaped-text value stream *escape-minimal-map*))
+
 (defun format-attr-val (stream val)
   (declare (optimize speed 3))
   (let ((val (cond
                ((null val) "")
                ((stringp val) val)
                (t (format nil "~a" val)))))
-   (format stream "\"~A\"" (cl-who:escape-string val))))
+    (write-char #\" stream)
+    (print-escaped-text val stream)
+    (write-char #\" stream)))
 
 
 (defun write-attributes (attributes stream)
@@ -471,7 +508,7 @@ set children as (\"x\" <h1>y</h1>).
       (t
        ;; else we need to escape this before writing
        (when content
-         (format stream "~A" (who:escape-string-minimal (format nil "~A" content))))))))
+         (print-escaped-text-minimal (format nil "~A" content) stream))))))
 
 (defmethod print-object ((tree unescaped-string) stream)
   (declare (optimize speed 3))
