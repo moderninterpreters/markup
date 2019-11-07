@@ -452,7 +452,7 @@
 ;; depended on CL-WHO for escaping, but this is better.
 (defun print-escaped-text (value stream &optional (escape-map *escape-map*))
   (declare (type string value))
-  (declare (type array escape-map))
+  (declare (type (simple-array (or null string) (*)) escape-map))
   (declare (optimize speed))
   (loop for char of-type character across value
      for escaped = (if (< (char-code char) 256) (aref escape-map (char-code char)))
