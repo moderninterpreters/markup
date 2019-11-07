@@ -280,13 +280,13 @@
   (let ((stream (make-string-input-stream string)))
     (read-xml stream (read-char stream t nil t))))
 
-(defclass xml-tag ()
-  ((attributes :initarg :attributes :accessor xml-tag-attributes :type (or null cons))
-   (children :initarg :children :accessor xml-tag-children :type (or null cons))
-   (name :initarg :name :accessor xml-tag-name :type symbol)))
+(defstruct (xml-tag (:constructor make-xml-tag-impl))
+  (attributes nil :type (or null cons))
+  (children nil :type (or null cons))
+  (name 'dummy :type symbol))
 
 (defclass xml-merge-tag ()
-  ((children :initarg :children :accessor xml-tag-children :type (or null cons))))
+  ((children :initarg :children :accessor xml-merge-tag-children :type (or null cons))))
 
 (defun make-merge-tag (children)
   (make-instance 'xml-merge-tag :children children))
@@ -298,9 +298,9 @@
       (keywordp name)
       (and (not (fboundp name))
            (standard-name? name)))
-     (make-instance 'xml-tag :name name
-                    :children children
-                    :attributes attributes))
+     (make-xml-tag-impl :name name
+                        :children children
+                        :attributes attributes))
     (t
      (let ((args))
        (when children
@@ -392,7 +392,7 @@
 
 (defmethod write-html-to-stream ((tree xml-merge-tag) stream)
   (declare (optimize speed 3))
-  (loop for child in (xml-tag-children tree)
+  (loop for child in (xml-merge-tag-children tree)
      do
        (write-html-to-stream child stream)))
 
