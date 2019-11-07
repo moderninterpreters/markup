@@ -353,6 +353,7 @@
 (defvar *standard-name-cache* (make-hash-table))
 
 (defun standard-name? (tag)
+  (declare (type symbol tag))
   (declare (optimize speed 3))
   (multiple-value-bind (res present-p) (gethash tag *standard-name-cache*)
     (cond
