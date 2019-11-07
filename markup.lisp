@@ -281,12 +281,12 @@
     (read-xml stream (read-char stream t nil t))))
 
 (defclass xml-tag ()
-  ((attributes :initarg :attributes :accessor xml-tag-attributes)
-   (children :initarg :children :accessor xml-tag-children)
-   (name :initarg :name :accessor xml-tag-name)))
+  ((attributes :initarg :attributes :accessor xml-tag-attributes :type (or null cons))
+   (children :initarg :children :accessor xml-tag-children :type (or null cons))
+   (name :initarg :name :accessor xml-tag-name :type symbol)))
 
 (defclass xml-merge-tag ()
-  ((children :initarg :children :accessor xml-tag-children)))
+  ((children :initarg :children :accessor xml-tag-children :type (or null cons))))
 
 (defun make-merge-tag (children)
   (make-instance 'xml-merge-tag :children children))
@@ -340,7 +340,6 @@
 (defparameter *void-tag-cache* (make-hash-table))
 
 (defun void-tag? (tag)
-  (declare (type symbol tag))
   (declare (optimize speed 3))
   (multiple-value-bind (res present-p) (gethash tag *void-tag-cache*)
     (cond
@@ -354,7 +353,6 @@
 (defvar *standard-name-cache* (make-hash-table))
 
 (defun standard-name? (tag)
-  (declare (type symbol tag))
   (declare (optimize speed 3))
   (multiple-value-bind (res present-p) (gethash tag *standard-name-cache*)
     (cond
