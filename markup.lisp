@@ -516,24 +516,24 @@
   (let ((tag-name (string-downcase (xml-tag-name tree))))
     (when (equal tag-name "html")
       (format stream "<!DOCTYPE html>~%"))
-    (format stream "<~A" tag-name))
+    (funcall (formatter "<~A") stream tag-name))
 
   (write-attributes (xml-tag-attributes tree) stream)
 
   (cond
     ((not (void-tag? (xml-tag-name tree)))
-     (format stream ">")
+     (write-string ">" stream)
      (loop for child in (xml-tag-children tree)
         do
           (write-html-to-stream child stream))
-     (format stream "</~A>" (string-downcase (xml-tag-name tree))))
+     (funcall (formatter "</~A>") stream (string-downcase (xml-tag-name tree))))
     (t
-     (format stream " />"))))
+     (write-string " />" stream))))
 
 
 (defmethod write-html-to-stream ((tree string) stream)
   (declare (optimize speed 3))
-  (format stream "~A" tree))
+  (funcall (formatter "~A") stream tree))
 
 (defmethod write-html-to-stream ((tree xml-merge-tag) stream)
   (declare (optimize speed 3))
@@ -604,7 +604,7 @@ set children as (\"x\" <h1>y</h1>).
 
 (defmethod write-html-to-stream ((tree unescaped-string) stream)
   (declare (optimize speed 3))
-  (format stream "~a" (unescaped-string-content tree)))
+  (funcall (formatter "~a") stream (unescaped-string-content tree)))
 
 (defmethod write-html-to-stream ((tree escaped-string) stream)
   (declare (optimize speed 3))
