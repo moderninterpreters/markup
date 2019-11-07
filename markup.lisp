@@ -367,6 +367,7 @@
              (member (symbol-name tag) *standard-names* :test 'string=))))))
 
 (defmethod write-html-to-stream ((tree xml-tag) stream)
+  (declare (optimize speed 3))
   (let ((tag-name (string-downcase (xml-tag-name tree))))
     (when (equal tag-name "html")
       (format stream "<!DOCTYPE html>~%"))
