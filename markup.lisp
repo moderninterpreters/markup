@@ -464,7 +464,7 @@
   (print-escaped-text value stream *escape-minimal-map*))
 
 (defun format-attr-val (stream val)
-  (declare (optimize speed 3))
+  (declare (optimize speed))
   (let ((val (cond
                ((null val) "")
                ((stringp val) val)
@@ -476,7 +476,7 @@
 
 (defun write-attributes (attributes stream)
   (declare (type (or null cons) attributes))
-  (declare (optimize speed 3))
+  (declare (optimize speed))
   (dolist (attr attributes)
     (declare (type cons attr))
     (when (cdr attr)
@@ -489,7 +489,7 @@
 
 (defun void-tag? (tag)
   (declare (type symbol tag))
-  (declare (optimize speed 3))
+  (declare (optimize speed))
   (multiple-value-bind (res present-p) (gethash tag *void-tag-cache*)
     (cond
       (present-p res)
@@ -503,7 +503,7 @@
 
 (defun standard-name? (tag)
   (declare (type symbol tag))
-  (declare (optimize speed 3))
+  (declare (optimize speed))
   (multiple-value-bind (res present-p) (gethash tag *standard-name-cache*)
     (cond
       (present-p res)
@@ -531,24 +531,24 @@
 
 
 (defmethod write-html-to-stream ((tree string) stream)
-  (declare (optimize speed 3))
+  (declare (optimize speed))
   (funcall (formatter "~A") stream tree))
 
 (defmethod write-html-to-stream ((tree xml-merge-tag) stream)
-  (declare (optimize speed 3))
+  (declare (optimize speed))
   (loop for child in (xml-merge-tag-children tree)
      do
        (write-html-to-stream child stream)))
 
 (defmethod write-html-to-stream ((tree (eql nil)) stream)
-  (declare (optimize speed 3))  )
+  (declare (optimize speed))  )
 
 (defmethod print-object ((tree xml-tag) stream)
-  (declare (optimize speed 3))
+  (declare (optimize speed))
   (write-html-to-stream tree stream))
 
 (defmethod print-object ((tree xml-merge-tag) stream)
-  (declare (optimize speed 3))
+  (declare (optimize speed))
   (write-html-to-stream tree stream))
 
 (defun deftag-symbol (arg)
@@ -602,11 +602,11 @@ set children as (\"x\" <h1>y</h1>).
                  :content child))
 
 (defmethod write-html-to-stream ((tree unescaped-string) stream)
-  (declare (optimize speed 3))
+  (declare (optimize speed))
   (funcall (formatter "~a") stream (unescaped-string-content tree)))
 
 (defmethod write-html-to-stream ((tree escaped-string) stream)
-  (declare (optimize speed 3))
+  (declare (optimize speed))
   (let ((content (escaped-string-content tree)))
     (case (type-of content)
       ('unescaped-string (write-html-to-stream content stream))
@@ -618,7 +618,7 @@ set children as (\"x\" <h1>y</h1>).
          (print-escaped-text-minimal (format nil "~A" content) stream))))))
 
 (defmethod print-object ((tree unescaped-string) stream)
-  (declare (optimize speed 3))
+  (declare (optimize speed))
   (write-html-to-stream tree stream))
 
 (defun unescaped (string)
