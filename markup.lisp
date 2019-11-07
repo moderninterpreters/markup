@@ -512,7 +512,7 @@
              (member (symbol-name tag) *standard-names* :test 'string=))))))
 
 (defmethod write-html-to-stream ((tree xml-tag) stream)
-  (declare (optimize speed 3))
+  (declare (optimize speed))
   (let ((tag-name (string-downcase (xml-tag-name tree))))
     (when (equal tag-name "html")
       (format stream "<!DOCTYPE html>~%"))
@@ -523,9 +523,8 @@
   (cond
     ((not (void-tag? (xml-tag-name tree)))
      (write-string ">" stream)
-     (loop for child in (xml-tag-children tree)
-        do
-          (write-html-to-stream child stream))
+     (dolist (child  (xml-tag-children tree))
+       (write-html-to-stream child stream))
      (funcall (formatter "</~A>") stream (string-downcase (xml-tag-name tree))))
     (t
      (write-string " />" stream))))
