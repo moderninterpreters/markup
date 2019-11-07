@@ -40,64 +40,172 @@
          :wbr)))
 
 
-(defvar *standard-names*
+(defparameter *standard-names*
   (mapcar #'symbol-name
-          (list :span
-                :div
-                :script
-                :i
-                :header
-                :template
-                :b
-                :ol
-                :em
-                :canvas
-                :img
-                :path
-                :hidden
-                :svg
-                :polygon
-                :g
-                :rect
-                :nav
-                :section
+          (list :html
+                :base
+                :head
+                :link
+                :meta
+                :style
+                :title
+                :body
+                :address
+                :article
+                :aside
                 :footer
-                :strong
-                :a
+                :header
                 :h1
                 :h2
-                :th
-                :thead
-                :br
-                :meta
-                :title
-                :link
-                :table
-                :head
-                :td
-                :tr
-                :body
-                :html
-                :li
-                :form
-                :input
-                :button
-                :ul
                 :h3
                 :h4
-                :label
-                :small
-                :option
-                :select
                 :h5
                 :h6
-                :p
+                :hgroup
+                :main
+                :nav
+                :section
+                :blockquote
+                :dd
+                :dir
+                :div
+                :dl
+                :dt
+                :figcaption
+                :figure
                 :hr
-                :textarea
+                :li
+                :main
+                :ol
+                :p
+                :pre
+                :ul
                 :a
+                :abbr
+                :b
+                :bdi
+                :bdo
+                :br
+                :cite
+                :code
+                :data
+                :dfn
+                :em
+                :i
+                :kbd
+                :mark
+                :q
+                :rb
+                :rp
+                :rt
+                :rtc
+                :ruby
+                :s
+                :samp
+                :small
+                :span
+                :strong
+                :sub
+                :sup
+                :time
                 :tt
-                :bold
-                :style)))
+                :u
+                :var
+                :wbr
+                :area
+                :audio
+                :img
+                :map
+                :track
+                :video
+                :applet
+                :embed
+                :iframe
+                :noembed
+                :object
+                :param
+                :picture
+                :source
+                :canvas
+                :noscript
+                :script
+                :del
+                :ins
+                :caption
+                :col
+                :colgroup
+                :table
+                :tbody
+                :td
+                :tfoot
+                :th
+                :thead
+                :tr
+                :button
+                :datalist
+                :fieldset
+                :form
+                :input
+                :label
+                :legend
+                :meter
+                :optgroup
+                :option
+                :output
+                :progress
+                :select
+                :textarea
+                :details
+                :dialog
+                :menu
+                :menuitem
+                :summary
+                :content
+                :element
+                :shadow
+                :slot
+                :template
+                :acronym
+                :applet
+                :basefont
+                :bgsound
+                :big
+                :blink
+                :center
+                :command
+                :content
+                :dir
+                :element
+                :font
+                :frame
+                :frameset
+                :image
+                :isindex
+                :keygen
+                :listing
+                :marquee
+                :menuitem
+                :multicol
+                :nextid
+                :nobr
+                :noembed
+                :noframes
+                :plaintext
+                :shadow
+                :spacer
+                :strike
+                :tt
+                :xmp
+
+                ;; these are not official HTML5 attributes, so I don't
+                ;; know where they come from, but they are definitely
+                ;; in the templates I use.
+                :svg
+                :path
+                :rect
+                :g
+                :polygon
+                )))
 
 (defun read-tag-from-string (name)
   (let ((name (read-from-string name)))
