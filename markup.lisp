@@ -347,7 +347,7 @@
   (declare (type array escape-map))
   (declare (optimize speed))
   (loop for char of-type character across value
-     for escaped = (aref escape-map (char-code char))
+     for escaped = (if (< (char-code char) 256) (aref escape-map (char-code char)))
      if escaped
      do (write-string escaped stream)
      else do (write-char char stream)))
