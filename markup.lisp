@@ -292,6 +292,7 @@
   (make-instance 'xml-merge-tag :children children))
 
 (defun make-xml-tag (name &key children attributes)
+  (declare (type symbol name))
   (cond
     ((or
       (keywordp name)
@@ -326,17 +327,21 @@
 
 
 (defun write-attributes (attributes stream)
-  (loop for attr in attributes
-     if (cdr attr)
-     do
+  (declare (type (or null cons) attributes))
+  (declare (optimize speed 3))
+  (dolist (attr attributes)
+    (declare (type cons attr))
+    (when (cdr attr)
        (write-char #\Space stream)
        (write-string (car attr) stream)
        (write-char #\= stream)
-       (write-string (format-attr-val (cdr attr)) stream)))
+       (write-string (format-attr-val (cdr attr)) stream))))
 
 (defparameter *void-tag-cache* (make-hash-table))
 
 (defun void-tag? (tag)
+  (declare (type symbol tag))
+  (declare (optimize speed 3))
   (multiple-value-bind (res present-p) (gethash tag *void-tag-cache*)
     (cond
       (present-p res)
@@ -349,6 +354,8 @@
 (defvar *standard-name-cache* (make-hash-table))
 
 (defun standard-name? (tag)
+  (declare (type symbol tag))
+  (declare (optimize speed 3))
   (multiple-value-bind (res present-p) (gethash tag *standard-name-cache*)
     (cond
       (present-p res)
