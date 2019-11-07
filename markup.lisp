@@ -338,7 +338,7 @@
        (write-char #\Space stream)
        (write-string (car attr) stream)
        (write-char #\= stream)
-       (format-attr-val stream (cdr attr)) stream)))
+       (format-attr-val stream (cdr attr)))))
 
 (defparameter *void-tag-cache* (make-hash-table))
 
