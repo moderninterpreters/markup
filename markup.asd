@@ -10,4 +10,5 @@
                #:alexandria
                #:named-readtables)
   :components ((:file "package")
-               (:file "markup")))
+               (:file "markup")
+               (:file "walk")))

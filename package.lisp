@@ -17,6 +17,8 @@
            #:write-xml-to-stream ;; deprecated
            #:write-html-to-stream
            #:deftag
+           #:walk
+           #:add-attrs
            #:xml-tag
            #:xml-tag-children
            #:get-attr

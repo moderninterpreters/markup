@@ -7,7 +7,8 @@
   :depends-on (:markup
                :fiveam)
   :serial t
-  :components ((:file "test-markup"))
+  :components ((:file "test-markup")
+               (:file "test-walk"))
 
   :perform (test-op (op system)
                     (funcall (read-from-string "fiveam:run-all-tests"))))

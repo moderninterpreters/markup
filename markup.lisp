@@ -400,13 +400,12 @@
   (make-xml-merge-tag :children children))
 
 (defun make-xml-tag (name &key children attributes)
-  (declare (type symbol name))
   (cond
     ((or
       (keywordp name)
       (and (not (fboundp name))
            (standard-name? name)))
-     (make-xml-tag-impl :name name
+     (make-xml-tag-impl :name (intern (string name) "KEYWORD")
                         :children children
                         :attributes attributes))
     (t
@@ -532,7 +531,7 @@
 (defmethod get-attr ((xml-tag xml-tag) name)
   (alexandria:assoc-value (xml-tag-attributes xml-tag)
                           name
-                          :test 'equal))
+                        :test 'equal))
 
 
 (defmethod write-html-to-stream ((tree string) stream)
