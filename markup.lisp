@@ -602,8 +602,11 @@ set children as (\"x\" <h1>y</h1>).
   ((content :initarg :content :accessor escaped-string-content)))
 
 (defun make-escaped (child)
-  (make-instance 'escaped-string
-                 :content child))
+  (typecase child
+    (xml-tag
+     child)
+    (t (make-instance 'escaped-string
+                    :content child))))
 
 (defmethod write-html-to-stream ((tree unescaped-string) stream)
   (declare (optimize speed))

@@ -6,6 +6,15 @@
 
 (defmethod walk (tree fn)
   ;; do nothin
+  (error "unexpected ~S" tree))
+
+(defmethod walk ((tree string) fn)
+  tree)
+
+(defmethod walk ((tree unescaped-string) fn)
+  tree)
+
+(defmethod walk ((tree escaped-string) fn)
   tree)
 
 (Defmethod walk ((tree xml-merge-tag) fn)
