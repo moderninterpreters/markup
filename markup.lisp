@@ -530,9 +530,9 @@
      (write-string " />" stream))))
 
 (defmethod get-attr ((xml-tag xml-tag) name)
-  (dolist (attr (xml-tag-attributes xml-tag))
-    (if (equal (car attr) name)
-        (return-from get-attr (cdr attr)))))
+  (alexandria:assoc-value (xml-tag-attributes xml-tag)
+                          name
+                          :test 'equal))
 
 
 (defmethod write-html-to-stream ((tree string) stream)

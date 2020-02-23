@@ -8,7 +8,11 @@
            #:make-merge-tag
            #:write-xml ;; deprecated
            #:write-html
+           #:xml-tag-name
+           #:xml-tag-attributes
            #:unescaped
+           #:xml-merge-tag-children
+           #:xml-merge-tag
            #:enable-reader
            #:write-xml-to-stream ;; deprecated
            #:write-html-to-stream
