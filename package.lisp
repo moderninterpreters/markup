@@ -13,6 +13,7 @@
            #:write-xml-to-stream ;; deprecated
            #:write-html-to-stream
            #:deftag
+           #:get-attr
            #:write
            #:syntax
            #:markup-enable-reader

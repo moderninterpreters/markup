@@ -529,6 +529,11 @@
     (t
      (write-string " />" stream))))
 
+(defmethod get-attr ((xml-tag xml-tag) name)
+  (dolist (attr (xml-tag-attributes xml-tag))
+    (if (equal (car attr) name)
+        (return-from get-attr (cdr attr)))))
+
 
 (defmethod write-html-to-stream ((tree string) stream)
   (declare (optimize speed))
