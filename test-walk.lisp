@@ -15,7 +15,7 @@
                            (add-attrs x :foo "2")))))))
 
 (test check-name
-  (is (equal 'h1 (xml-tag-name <h1>hello</h1>))))
+  (is (equal :h1 (xml-tag-name <h1>hello</h1>))))
 
 (test replace-in-inner-place
   (is (equal
