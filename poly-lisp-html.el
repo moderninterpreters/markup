@@ -60,7 +60,7 @@
           (and (equal prev-mm 'lisp-mode)
                (equal curr-mm 'lisp-mode)))
       (with-syntax-table lisp-mode-syntax-table
-        (indent-line-to (save-excursion (calculate-lisp-indent))))))))
+        (lisp-indent-line))))))
 
 (provide 'poly-lisp-html)
 ;;; poly-lisp-html.el ends here
