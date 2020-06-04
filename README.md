@@ -83,16 +83,22 @@ markup is available via quicklisp
 
 ## Editor support
 
-We do not have editor support, even for Emacs, so indentation is going
-to be done manually by the developer.
+In Emacs, install [polymode](https://github.com/polymode/polymode) and configure like so:
+```lisp
+(use-package poly-lisp-html
+  :load-path "~/quicklisp/dists/quicklisp/software/markup-20191130-git/")
+(use-package polymode
+  :after (poly-lisp-html)
+  :mode ("\\.htmlisp$" . poly-lisp-html-mode)
+  ;; you obviously don't need this if you don't have rainbow-delimiters
+  :hook ((poly-lisp-html-mode . rainbow-delimiters-mode-disable))) ;I'm sorry, but rainbow-delimiters doesn't work with this
+```
 
 ## FAQ
 
 ### What about expressions like `(< x 2)`?
 
 Markdown requires tags to follow the `<` operator, otherwise (or if it's `<=`) treats it as a symbol.
-
-To simplify editor support in the future, we recommend a style guide of using `(|<| x 2)` in markup enabled code.
 
 ### Are custom tags namespaced?
 
