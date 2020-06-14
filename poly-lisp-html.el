@@ -23,15 +23,16 @@
    :adjust-face nil
    :head-adjust-face nil
    :tail-adjust-face nil
-   :head-matcher (cons "\\(?1:[^('\"[:alpha:]]\\)[<>]" 1)
-   :tail-matcher (cons "\\(?1:\\(,\\|,@\\|=\\)(\\)\\|</[^ \t\r\n]*>\\(?1:[ \t\r\n]*)\\)" 1)            
-   :head-mode 'host
+   :head-matcher "<[^|=<> \t\r\n]+\\|[ \t\r\n]/?\\(?1:>\\)"
+   :tail-matcher (cons "\\(?1:>[ \t\r\n]*\\)\\|\\(?1:,\\|,@\\|=\\)(" 1)
+   :head-mode 'body
    :tail-mode 'body))
+(defmethod pm-indent-line ((_chunkmode pm-lisp-html-inner-chunkmode) span)
+  (lisp-html-indent-line))
+
 (define-polymode poly-lisp-html-mode
   :hostmode 'poly-lisp-hostmode
   :innermodes '(poly-lisp-html-innermode))
-(defmethod pm-indent-line ((_chunkmode pm-lisp-html-inner-chunkmode) span)
-  (lisp-html-indent-line))
 
 (defun lisp-html-indent-line ()
   "Indent a line of lisp or html."
