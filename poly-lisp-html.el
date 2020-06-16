@@ -23,8 +23,8 @@
    :adjust-face nil
    :head-adjust-face nil
    :tail-adjust-face nil
-   :head-matcher "<[^|=<> \t\r\n]+\\|[ \t\r\n]/?\\(?1:>\\)"
-   :tail-matcher (cons "\\(?1:>[ \t\r\n]*\\)\\|\\(?1:,\\|,@\\|=\\)(" 1)
+   :head-matcher (cons "\\(?1:<[^|=<> \t\r\n]+\\)\\|[) \t\r\n]/?\\(?1:>\\)" 1)
+   :tail-matcher (cons "\\(?1:>[ \t\r\n]*\\))\\|\\(?1:,\\|,@\\|=\\)(" 1)
    :head-mode 'body
    :tail-mode 'body))
 (defmethod pm-indent-line ((_chunkmode pm-lisp-html-inner-chunkmode) span)
@@ -37,31 +37,32 @@
 (defun lisp-html-indent-line ()
   "Indent a line of lisp or html."
   (interactive)
-  (back-to-indentation)
-  (let ((prev-mm (save-excursion
-                   (forward-line -1)
-                   (end-of-line)
-                   (backward-char)
-                   (pm-span-mode)))
-        (curr-mm (pm-span-mode))
-        (closing-p (looking-at "</")))
-    (cond
-     ;; sgml indent
-     ((or (and (equal prev-mm html-mm)
-               (equal curr-mm html-mm))
-          (and (equal prev-mm 'lisp-mode)
-               closing-p))
-      (with-syntax-table html-mode-syntax-table
-        (sgml-indent-line)))
-     ;; lisp indent
-     ((or (and (equal prev-mm 'lisp-mode)
-               (equal curr-mm html-mm))
-          (and (equal prev-mm html-mm)
-               (equal curr-mm 'lisp-mode))
-          (and (equal prev-mm 'lisp-mode)
-               (equal curr-mm 'lisp-mode)))
-      (with-syntax-table lisp-mode-syntax-table
-        (lisp-indent-line))))))
+  (save-excursion
+    (widen)
+    (back-to-indentation)
+    (let ((prev-mm (save-excursion
+                     (forward-line -1)
+                     (end-of-line)
+                     (pm-span-mode)))
+          (curr-mm (pm-span-mode))
+          (closing-p (looking-at "</")))
+      (cond
+       ;; sgml indent
+       ((or (and (equal prev-mm html-mm)
+                 (equal curr-mm html-mm))
+            (and (equal prev-mm 'lisp-mode)
+                 closing-p))
+        (with-syntax-table html-mode-syntax-table
+          (sgml-indent-line)))
+       ;; lisp indent
+       ((or (and (equal prev-mm 'lisp-mode)
+                 (equal curr-mm html-mm))
+            (equal curr-mm 'lisp-mode))
+        (with-syntax-table lisp-mode-syntax-table
+          (pm-set-buffer (- (point) 1))
+          (lisp-indent-line))))))
+  (when (< (point) (save-excursion (back-to-indentation) (point)))
+    (back-to-indentation)))
 
 (provide 'poly-lisp-html)
 ;;; poly-lisp-html.el ends here
