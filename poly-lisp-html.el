@@ -59,7 +59,7 @@
                  (equal curr-mm html-mm))
             (equal curr-mm 'lisp-mode))
         (with-syntax-table lisp-mode-syntax-table
-          (pm-set-buffer (- (point) 1))
+          (pm-set-buffer (if (= 1 (point)) 1 (- (point) 1)))
           (lisp-indent-line))))))
   (when (< (point) (save-excursion (back-to-indentation) (point)))
     (back-to-indentation)))
