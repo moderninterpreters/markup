@@ -222,6 +222,21 @@
        "<body> <!-- this is a test --></body>"
        (markup:write-html <:body> <!-- this is a test --></:body>))))
 
+(test comments-without-prefix-space
+  (is (equal
+       "<body> <!--nospace --></body>"
+       (markup:write-html <:body> <!--nospace --></:body>))))
+
+(test comments-without-space
+  (is (equal
+       "<body> <!--nospace--></body>"
+       (markup:write-html <:body> <!--nospace--></:body>))))
+
+(test comments-with-multiple-hyphens
+  (is (equal
+       "<body> <!----nospace----></body>"
+       (markup:write-html <:body> <!----nospace----></:body>))))
+
 (test />-without-space
   (is (equal
        "<body></body>"

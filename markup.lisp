@@ -8,17 +8,21 @@
 (defun read-tag (stream)
   (flet ((peek-next-char () (peek-char nil stream t nil t))
          (read-next-char () (read-char stream t nil t)))
-    (coerce
-     (loop
-        until
-           (or
-            (whitespacep (peek-next-char))
-            (eql (peek-next-char) #\/)
-            (eql (peek-next-char) #\>))
-        collect
-          (progn
-            (read-next-char)))
-     'string)))
+    (let ((response nil)
+          (found-comment nil))
+      (block loop
+       (loop
+          until
+            (or
+             (whitespacep (peek-next-char))
+             (eql (peek-next-char) #\/)
+             (eql (peek-next-char) #\>))
+          do
+            (progn
+              (push (read-next-char) response)
+              (when (equalp '(#\- #\- #\!) response)
+                (return-from loop)))))
+     (coerce (nreverse response) 'string))))
 
 (defparameter *void-tags*
   (mapcar #'symbol-name
