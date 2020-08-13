@@ -1,4 +1,5 @@
 ;; Copyright 2019, Modern Interpreters Inc
+;; -*- coding: utf-8 -*-
 
 (defpackage #:test-markup
   (:use #:markup
@@ -254,3 +255,8 @@
     (is (equal
          "<body>News &amp; Events</body>"
          (markup:write-html <body>,(progn val)</body>)))))
+
+(test utf-8
+  (is (equal
+       "<h1>they’re</h1>"
+       (markup:write-html <h1>they’re</h1>))))
