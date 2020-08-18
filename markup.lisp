@@ -8,17 +8,21 @@
 (defun read-tag (stream)
   (flet ((peek-next-char () (peek-char nil stream t nil t))
          (read-next-char () (read-char stream t nil t)))
-    (coerce
-     (loop
-        until
-           (or
-            (whitespacep (peek-next-char))
-            (eql (peek-next-char) #\/)
-            (eql (peek-next-char) #\>))
-        collect
-          (progn
-            (read-next-char)))
-     'string)))
+    (let ((response nil)
+          (found-comment nil))
+      (block loop
+       (loop
+          until
+            (or
+             (whitespacep (peek-next-char))
+             (eql (peek-next-char) #\/)
+             (eql (peek-next-char) #\>))
+          do
+            (progn
+              (push (read-next-char) response)
+              (when (equalp '(#\- #\- #\!) response)
+                (return-from loop)))))
+     (coerce (nreverse response) 'string))))
 
 (defparameter *void-tags*
   (mapcar #'symbol-name
@@ -388,10 +392,19 @@
   (let ((stream (make-string-input-stream string)))
     (read-xml stream (read-char stream t nil t))))
 
-(defstruct (xml-tag (:constructor make-xml-tag-impl))
-  (attributes nil :type (or null cons))
-  (children nil :type (or null cons))
-  (name 'dummy :type symbol))
+(defclass xml-tag ()
+  ((attributes :initform nil
+               :initarg :attributes
+               :accessor xml-tag-attributes
+               :type (or null cons))
+   (children :initform nil
+             :initarg :children
+             :accessor xml-tag-children
+             :type (or null cons))
+   (name :initform 'dummy
+         :initarg :name
+         :accessor xml-tag-name
+         :type symbol)))
 
 (defstruct xml-merge-tag
   (children nil :type (or null cons)))
@@ -405,9 +418,10 @@
       (keywordp name)
       (and (not (fboundp name))
            (standard-name? name)))
-     (make-xml-tag-impl :name (intern (string name) "KEYWORD")
-                        :children children
-                        :attributes attributes))
+     (make-instance 'xml-tag
+                    :name (intern (string name) "KEYWORD")
+                    :children children
+                    :attributes attributes))
     (t
      (let ((args))
        (when children
