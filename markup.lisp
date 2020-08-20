@@ -385,7 +385,16 @@
 
 (defmethod read-xml ((stream markup-stream) char)
   (declare (ignore char))
-  (read-xml-after-bracket stream (peek-char nil stream t nil t)))
+  (handler-bind ((error
+                  (lambda (e)
+                    (declare (ignore e))
+                    (warn "Got error while reading HTML. The last few characters we read were: ~% ~a"
+                          (let ((str (read-so-far stream))
+                                (num 40))
+                            (str:substring (- (length str) num)
+                                           (length str)
+                                           str))))))
+      (read-xml-after-bracket stream (peek-char nil stream t nil t))))
 
 (defreadtable syntax
   (:merge :standard)
