@@ -8,7 +8,8 @@
                :fiveam)
   :serial t
   :components ((:file "test-markup")
-               (:file "test-walk"))
+               (:file "test-walk")
+               (:file "test-stream"))
 
   :perform (test-op (op system)
                     (funcall (read-from-string "fiveam:run-all-tests"))))

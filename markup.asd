@@ -8,7 +8,9 @@
   :serial t
   :depends-on (#:str
                #:alexandria
-               #:named-readtables)
+               #:named-readtables
+               #:trivial-gray-streams)
   :components ((:file "package")
+               (:file "stream")
                (:file "markup")
                (:file "walk")))
