@@ -380,7 +380,10 @@
         ret))))
 
 
-(defun read-xml (stream char)
+(defmethod read-xml (stream char)
+  (read-xml (wrap-stream stream) char))
+
+(defmethod read-xml ((stream markup-stream) char)
   (declare (ignore char))
   (read-xml-after-bracket stream (peek-char nil stream t nil t)))
 

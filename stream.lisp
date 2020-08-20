@@ -5,38 +5,45 @@
   ((delegate
     :initarg :delegate
     :reader stream-delegate)
-   (last-char
+   (unread-char
     :initform nil
-    :accessor last-read-char)
+    :accessor %unread-char)
    (history
     :reader history-stream
     :initform (make-string-output-stream))))
 
 (defmethod trivial-gray-streams:stream-read-char ((stream markup-stream))
-  (let ((ch (trivial-gray-streams:stream-read-char (stream-delegate stream))))
-    (flush-last-read stream)
-    (setf (last-read-char stream) ch)
-    ch))
+  (with-slots (unread-char)  stream
+   (cond
+     (unread-char
+      (let ((ret unread-char))
+        (setf unread-char nil)
+        ret))
+     (t
+      (let ((ch (read-char (stream-delegate stream) nil :eof)))
+        (write-char ch (history-stream stream))
+        ch)))))
 
 (defmethod trivial-gray-streams:stream-unread-char ((stream markup-stream) ch)
-  (assert (last-read-char stream))
-  (setf (last-read-char stream) nil)
-  (trivial-gray-streams:stream-unread-char (stream-delegate stream) ch))
+  (assert (eql nil (%unread-char stream)))
+  (setf (%unread-char stream) ch))
 
-(defun flush-last-read (stream)
-  (let ((last-read (last-read-char stream)))
-    (when last-read
-      (write-char last-read (history-stream stream))
-      (setf (last-read-char stream) nil))))
+(defmethod trivial-gray-streams:stream-peek-char ((stream markup-stream))
+  (let ((ret (trivial-gray-streams:stream-read-char stream)))
+    (trivial-gray-streams:stream-unread-char stream ret)
+    ret))
 
 (defun wrap-stream (stream)
   (make-instance 'markup-stream
                  :delegate stream))
 
 (defun read-so-far (stream)
-  (flush-last-read stream)
   (let ((resp (get-output-stream-string (history-stream stream))))
     ;; get-output-stream-string clears up the stream so let's write it
     ;; back
     (write-string resp (history-stream stream))
-    resp))
+    (cond
+      ((%unread-char stream)
+       (assert (> (length resp) 0))
+       (str:substring 0 (- (length resp) 1) resp))
+      (t resp))))

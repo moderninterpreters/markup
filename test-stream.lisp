@@ -13,6 +13,7 @@
 (test simple-flow
   (let ((stream (make-string-input-stream "foobar car war")))
     (let ((copy (wrap-stream stream)))
+      (is (equal "" (read-so-far copy)))
       (read-char copy)
       (read-char copy)
       (read-char copy)
