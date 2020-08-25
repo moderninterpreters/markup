@@ -5,6 +5,22 @@
 (defmacro enable-reader ()
   `(named-readtables:in-readtable syntax))
 
+(define-condition html-parse-error (error)
+  ((message :initarg :message)
+   (stream :initarg :stream)
+   (last-few-chars :accessor error-last-few-chars)))
+
+(defmethod initialize-instance :after ((e html-parse-error) &key stream &allow-other-keys)
+  (declare (ignore unused))
+  (setf (error-last-few-chars e)
+        (last-few-chars stream)))
+
+(defmethod print-object ((x html-parse-error) stream)
+  (with-slots (message last-few-chars) x
+   (if *print-escape* (call-next-method)
+       (format stream "~a~%Most recent read chars:~%`~a`"
+               message last-few-chars))))
+
 (defun read-tag (stream)
   (flet ((peek-next-char () (peek-char nil stream t nil t))
          (read-next-char () (read-char stream t nil t)))
@@ -304,7 +320,11 @@
 (defun read-xml-after-bracket (stream char)
   (declare (ignore char))
   (flet ((peek-next-char () (peek-char nil stream t nil t))
-         (read-next-char () (read-char stream t nil t)))
+         (read-next-char () (read-char stream t nil t))
+         (parse-error (&rest args)
+           (error 'html-parse-error
+                  :message (apply 'format nil args)
+                  :stream stream)))
     (let ((name (read-tag stream))
           (ends-with-slash nil)
           children
@@ -356,15 +376,15 @@
         ;; now we reach the /name> part of this, so let's read it out
         (let ((next-char (read-next-char)))
           (unless (eql #\/ next-char)
-            (error "expected to see a terminating element, got ~A" next-char)))
+            (parse-error "expected to see a terminating element, got ~A" next-char)))
 
         (let ((end-name (read-tag stream)))
           (unless (equal end-name name)
-            (error "ending of xml element doesn't match, got ~A instead of ~A" end-name name )))
+            (parse-error "ending of xml element doesn't match, got ~A instead of ~A" end-name name )))
 
         ;; read the #\>
         (if (not (eql #\> (read-next-char)))
-            (error "not terminating with >")))
+            (parse-error "not terminating with >")))
 
 
       (let ((ret (list 'make-xml-tag (read-tag-from-string name))))
@@ -384,17 +404,24 @@
 (defmethod read-xml (stream char)
   (read-xml (wrap-stream stream) char))
 
+(defun last-few-chars (stream)
+  (let ((str (read-so-far stream))
+        (num 80))
+    (str:substring (- (length str) num)
+                   (length str)
+                   str)))
+
 (defmethod read-xml ((stream markup-stream) char)
   (declare (ignore char))
-  (handler-bind ((error
+  (handler-bind ((html-parse-error
+                  (lambda (e)
+                    (declare (ignore e))
+                    nil))
+                 (error
                   (lambda (e)
                     (declare (ignore e))
                     (warn "Got error while reading HTML. The last few characters we read were: ~% ~a"
-                          (let ((str (read-so-far stream))
-                                (num 40))
-                            (str:substring (- (length str) num)
-                                           (length str)
-                                           str))))))
+                          (last-few-chars stream)))))
       (read-xml-after-bracket stream (peek-char nil stream t nil t))))
 
 (defreadtable syntax
