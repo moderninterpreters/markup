@@ -219,6 +219,7 @@
 
 (defun whitespacep (char)
   (or
+   (not (graphic-char-p char))
    (eql char #\Space)
    (eql char #\Newline)
    (eql char #\Linefeed)))
