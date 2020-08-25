@@ -8,12 +8,7 @@
 (define-condition html-parse-error (error)
   ((message :initarg :message)
    (stream :initarg :stream)
-   (last-few-chars :accessor error-last-few-chars)))
-
-(defmethod initialize-instance :after ((e html-parse-error) &key stream &allow-other-keys)
-  (declare (ignore unused))
-  (setf (error-last-few-chars e)
-        (last-few-chars stream)))
+   (last-few-chars :initarg :last-few-chars)))
 
 (defmethod print-object ((x html-parse-error) stream)
   (with-slots (message last-few-chars) x
@@ -324,7 +319,8 @@
          (parse-error (&rest args)
            (error 'html-parse-error
                   :message (apply 'format nil args)
-                  :stream stream)))
+                  :stream stream
+                  :last-few-chars (last-few-chars stream))))
     (let ((name (read-tag stream))
           (ends-with-slash nil)
           children
