@@ -6,7 +6,10 @@
         #:fiveam
         #:cl))
 (in-package #:test-markup)
+
 (markup:enable-reader)
+
+(def-suite* :markup.test-markup)
 
 (test simple
   (is (equal 2 (+ 1 1))))

@@ -2,6 +2,8 @@
 
 (markup:enable-reader)
 
+(def-suite* :markup.test-walk)
+
 (test identity-walk
   (is (equal
        (write-html <h1>foobar</h1>)
