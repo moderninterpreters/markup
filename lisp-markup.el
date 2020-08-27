@@ -4,6 +4,14 @@
 (require 'lisp-mode)
 (require 'mmm-mode)
 
+;;; add preferences for relevant modes
+(mmm-add-to-major-mode-preferences 'lisp 'lisp-mode t)
+(mmm-add-to-major-mode-preferences 'html 'html-mode t)
+;;; set customs to sensible defaults
+(setf mmm-submode-decoration-level 0)   ;no crazy backgrounds
+(setf mmm-parse-when-idle t)            ;update as buffer changes
+(setq mmm-global-mode 'maybe)           ;turn on mmm-mode in useful buffers
+
 (defun lisp-back-matcher ()
   (forward-char -1)
   (with-syntax-table lisp-mode-syntax-table
