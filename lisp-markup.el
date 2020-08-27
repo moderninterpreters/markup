@@ -64,7 +64,6 @@ Only works in when mmm-mode is active."
                                     1)
                            (skip-chars-backward ",@")
                            (- (point) (progn (beginning-of-line) (point))))))
-                    (message "special")
                     (indent-line-to prev-exp-ident))))
       (let ((prev-mm (save-excursion
                        (forward-line -1)
