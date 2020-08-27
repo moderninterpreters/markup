@@ -49,7 +49,11 @@
   "Indent a line of lisp or html.
 Only works in when mmm-mode is active."
   (interactive)
+  (mmm-update-current-submode)
+  (if (not mmm-current-submode)
+      (lisp-indent-line)
   (save-excursion
+    (save-restriction
     (widen)
     (back-to-indentation)
     (cl-flet ((lisp-html-submode
@@ -92,9 +96,9 @@ Only works in when mmm-mode is active."
          (:else (with-syntax-table lisp-mode-syntax-table
                   (let ((indent (calculate-lisp-indent)))
                     (cond ((listp indent) (special-lisp-html-indent-line)) ;special indent if lisp-indent is confused
-                          (indent (indent-line-to indent))))))))))
+                          (indent (indent-line-to indent)))))))))))
   (when (< (point) (save-excursion (back-to-indentation) (point)))
-    (back-to-indentation)))
+    (back-to-indentation))))
 (defun lisp-html-indent-region (beg end)
   "Indent a region of Lisp and Html mixed together.
 Just calls `lisp-html-indent-line' on every line of the region."
