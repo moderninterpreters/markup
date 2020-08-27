@@ -52,19 +52,20 @@ Only works in when mmm-mode is active."
   (save-excursion
     (widen)
     (back-to-indentation)
-    (cl-flet ((special-lisp-html-indent-line ()
-                (let ((prev-exp-ident
-                       (save-excursion
-                         (funcall (if (equal prev-mm 'lisp-mode)
-                                      #'backward-sexp
-                                    #'sgml-skip-tag-backward)
-                                  1)
-                         (skip-chars-backward ",@")
-                         (- (point) (progn (beginning-of-line) (point))))))
-                  (indent-line-to prev-exp-ident)))
-                (lisp-html-submode ()
-                  (mmm-update-current-submode)
-                  (or mmm-current-submode 'lisp-mode)))
+    (cl-flet ((lisp-html-submode
+               () (mmm-update-current-submode)
+               (or mmm-current-submode 'lisp-mode))
+              (special-lisp-html-indent-line
+               () (let ((prev-exp-ident
+                         (save-excursion
+                           (funcall (if (equal prev-mm 'lisp-mode)
+                                        #'backward-sexp
+                                      #'sgml-skip-tag-backward)
+                                    1)
+                           (skip-chars-backward ",@")
+                           (- (point) (progn (beginning-of-line) (point))))))
+                    (message "special")
+                    (indent-line-to prev-exp-ident))))
       (let ((prev-mm (save-excursion
                        (forward-line -1)
                        (end-of-line)
