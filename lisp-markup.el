@@ -41,8 +41,8 @@
     :include-front t
     :back "."
     :back-offset (html-back-matcher))))
-(mmm-add-mode-ext-class 'lisp-mode nil 'html-in-lisp)
 (mmm-add-mode-ext-class 'lisp-mode nil 'lisp-in-html)
+(mmm-add-mode-ext-class 'lisp-mode nil 'html-in-lisp)
 
 ;;; indentation
 (defun lisp-html-indent-line ()
