@@ -106,5 +106,6 @@ Just calls `lisp-html-indent-line' on every line of the region."
         (while (<= (current-line) last-line)
           (lisp-html-indent-line)
           (forward-line 1))))))
-(provide 'lisp-markup-mode)
+
+(provide 'lisp-markup)
 ;;; lisp-markup.el ends here
