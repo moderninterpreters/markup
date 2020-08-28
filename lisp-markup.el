@@ -13,15 +13,20 @@
 (setq mmm-global-mode 'maybe)           ;turn on mmm-mode in useful buffers
 
 (defun lisp-back-matcher ()
-  (forward-char -1)
-  (with-syntax-table lisp-mode-syntax-table
-    (forward-sexp))
-  0)
+  (condition-case nil
+      (progn (forward-char -1)
+             (with-syntax-table lisp-mode-syntax-table
+               (forward-sexp)))
+    (t (goto-char (point-max))))
+    0)
 
 (defun html-back-matcher ()
-  (forward-char -2)
-  (with-syntax-table html-mode-syntax-table
-    (sgml-skip-tag-forward 1))
+  (condition-case nil
+      (progn
+        (forward-char -2)
+        (with-syntax-table html-mode-syntax-table
+          (sgml-skip-tag-forward 1)))
+    (t (goto-char (point-max))))
   0)
 
 ;;; add mmm classes
