@@ -62,8 +62,9 @@ Only works in when mmm-mode is active."
     (widen)
     (back-to-indentation)
     (cl-flet ((lisp-html-submode
-               () (or (overlay-get (mmm-overlay-at (point)) 'mmm-mode)
-                      'lisp-mode))
+               () (let ((ovl (mmm-overlay-at (point))))
+                    (or (and ovl (overlay-get ovl 'mmm-mode))
+                      'lisp-mode)))
               (special-lisp-html-indent-line
                () (let ((prev-exp-ident
                          (save-excursion
