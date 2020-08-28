@@ -119,8 +119,11 @@ Just calls `lisp-html-indent-line' on every line of the region."
 (defun set-lisp-html-indentation ()
   (setq indent-line-function #'lisp-html-indent-line)
   (setq indent-region-function #'lisp-html-indent-region))
-(add-hook 'mmm-html-in-lisp-class-hook #'set-lisp-html-indentation)
 (add-hook 'mmm-lisp-in-html-class-hook #'set-lisp-html-indentation)
+(add-hook 'mmm-html-in-lisp-class-hook #'set-lisp-html-indentation)
+;; define enter to indent
+(define-key lisp-mode-map (kbd "<return>") #'newline-and-indent)
+(define-key html-mode-map (kbd "<return>") #'newline-and-indent)
 
 (provide 'lisp-markup)
 ;;; lisp-markup.el ends here
