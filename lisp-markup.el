@@ -81,7 +81,7 @@
                      (+ (point) 1) (- (search-forward-regexp "[>/[:space:]]") 1)))))
     (with-<>-as-brackets
       (forward-sexp 1)
-      (if (looking-back "/>")
+      (if (looking-back "/>" 1)
           (point)
           (condition-case nil
               (progn
