@@ -137,6 +137,20 @@
          ((and prev-html
                (save-excursion
                  (forward-line -1)
+                 (end-of-line)
+                 (skip-chars-backward "\t\r\n ")
+                 (and (= (char-before) 41)
+                      (progn
+                        (forward-sexp -1)
+                        (skip-chars-backward ",@")
+                        (= (char-after) ?,)))))
+          (indent-line-to
+           (save-excursion
+             (forward-sexp -1)
+             (current-indentation))))
+         ((and prev-html
+               (save-excursion
+                 (forward-line -1)
                  (back-to-indentation)
                  (looking-at "</")))
           (message "odd")
