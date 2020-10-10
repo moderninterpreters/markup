@@ -15,8 +15,8 @@
    ;; deftag faces
    ("deftag" . font-lock-keyword-face)
    ("deftag \\([^ ]+\\) " 1 font-lock-function-name-face)
-   ;; warning about single symbol lisp forms at the end of self closing tags
-   ("=[^[:space:]<>]+[^\") ]\\(/\\)" 1 font-lock-warning-face))
+   ;; warning about single symbol lisp forms at the end of tags
+   ("=[^[:space:]<>]+[^\"/) ]\\(/\\|>\\)" 1 font-lock-warning-face))
  'prepend)
 
 (font-lock-add-keywords
