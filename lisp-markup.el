@@ -3,6 +3,15 @@
 (require 'sgml-mode)
 (require 'lisp-mode)
 
+(defmacro with-<>-as-brackets (&rest body)
+  (declare (indent 1))
+  `(let ((syntax-table (syntax-table)))
+     (modify-syntax-entry ?< "(" syntax-table)
+     (modify-syntax-entry ?> ")" syntax-table)
+     ,@body
+     (modify-syntax-entry ?< "." syntax-table)
+     (modify-syntax-entry ?> "." syntax-table)))
+
 ;;; syntax highlighting
 (font-lock-add-keywords
  'lisp-mode
@@ -23,16 +32,6 @@
  'lisp-mode
  '(("&[^ ]+;" . font-lock-builtin-face))
  'prepend)
-
-(defmacro with-<>-as-brackets (&optional syntax-table &rest body)
-  (declare (indent 1))
-  (unless syntax-table (setq syntax-table (syntax-table)))
-  `(progn
-     (modify-syntax-entry ?< "(" ,syntax-table)
-     (modify-syntax-entry ?> ")" ,syntax-table)
-     ,@body
-     (modify-syntax-entry ?< "." ,syntax-table)
-     (modify-syntax-entry ?> "." ,syntax-table)))
 
 ;;; context
 (defun in-html-p ()
@@ -80,7 +79,7 @@
   (let ((tag-name (save-excursion
                     (buffer-substring-no-properties
                      (+ (point) 1) (- (search-forward-regexp "[>/[:space:]]") 1)))))
-    (with-<>-as-brackets lisp-mode-syntax-table
+    (with-<>-as-brackets
       (forward-sexp 1)
       (if (looking-back "/>")
           (point)
@@ -152,15 +151,9 @@
          ;;  (special-lisp-html-indent-line))
          ;; sgml indent
          (prev-html
-          (message "html")
-          ;; (with-<>-as-brackets lisp-mode-syntax-table
-          ;; (sgml-indent-line))
-          (progn
-            (modify-syntax-entry 60 "(" lisp-mode-syntax-table)
-            (modify-syntax-entry 62 ")" lisp-mode-syntax-table)
-            (sgml-indent-line)
-            (modify-syntax-entry 60 "." lisp-mode-syntax-table)
-            (modify-syntax-entry 62 "." lisp-mode-syntax-table)))
+          ;; (message "html")
+          (with-<>-as-brackets
+            (sgml-indent-line)))
          ;; lisp indent
          (:else
           (let ((indent (calculate-lisp-indent)))
