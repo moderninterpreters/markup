@@ -132,7 +132,7 @@
                   (save-excursion
                     (search-backward-regexp (concat "<" tag-name "[ />]"))
                     (- (point) (progn (beginning-of-line) (point))))))
-            (message "closing")
+            ;; (message "closing")
             (indent-line-to (max 0 indent))))
          ((and prev-html
                (save-excursion
@@ -153,7 +153,7 @@
                  (forward-line -1)
                  (back-to-indentation)
                  (looking-at "</")))
-          (message "odd")
+          ;; (message "odd")
           (indent-line-to
            (save-excursion
              (forward-line -1)
@@ -171,7 +171,7 @@
          ;; lisp indent
          (:else
           (let ((indent (calculate-lisp-indent)))
-            (message "lisp")
+            ;; (message "lisp")
             (cond
              ((and indent (listp indent)) (indent-line-to (car indent)))
              (indent (indent-line-to indent))
