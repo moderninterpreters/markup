@@ -5,12 +5,14 @@
 
 (defmacro with-<>-as-brackets (&rest body)
   (declare (indent 1))
-  `(let ((syntax-table (syntax-table)))
+  `(let ((syntax-table (syntax-table))
+         (< (string (char-syntax ?<)))
+         (> (string (char-syntax ?>))))
      (modify-syntax-entry ?< "(" syntax-table)
      (modify-syntax-entry ?> ")" syntax-table)
      ,@body
-     (modify-syntax-entry ?< "." syntax-table)
-     (modify-syntax-entry ?> "." syntax-table)))
+     (modify-syntax-entry ?< < syntax-table)
+     (modify-syntax-entry ?> > syntax-table)))
 
 ;;; syntax highlighting
 (font-lock-add-keywords
