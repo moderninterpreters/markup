@@ -52,7 +52,7 @@
                                 (lisp-start-point))
              while (/= lisp-start (point-max))
              for lisp-end = (lisp-end-point)
-             if (<= start lisp-start point lisp-end end)
+             if (<= start lisp-start (+ point 1) lisp-end end)
              return t))))))
 (defun lisp-start-point ()
   (condition-case nil
