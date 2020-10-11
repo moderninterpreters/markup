@@ -83,13 +83,13 @@ markup is available via quicklisp
 
 ## Editor support
 
-In Emacs, install [polymode](https://github.com/polymode/polymode) and configure like so:
 ```lisp
-(use-package poly-lisp-html
-  :load-path "~/quicklisp/dists/quicklisp/software/markup-20191130-git/")
-(use-package polymode
-  :after (poly-lisp-html)
-  :mode ("\\.htmlisp$" . poly-lisp-html-mode))
+(use-package lisp-markup
+  :load-path "~/quicklisp/dists/quicklisp/software/markup-<version>-git/")
+
+;; if you don't use use-package
+(add-to-list 'load-path "~/quicklisp/dists/quicklisp/software/markup-<version>-git/")
+(require 'lisp-markup)
 ```
 
 ## FAQ
