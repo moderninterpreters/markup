@@ -98,19 +98,6 @@
   (interactive)
   (save-excursion
     (back-to-indentation)
-         ;; closing tag
-         ((looking-at "</")
-          (let* ((tag-name (save-excursion
-                             (buffer-substring-no-properties
-                              (+ (point) 2)
-                              (progn (search-forward ">")
-                                     (- (point) 1)))))
-                 (indent
-                  (save-excursion
-                    (search-backward-regexp (concat "<" tag-name "[ />]"))
-                    (- (point) (progn (beginning-of-line) (point))))))
-            ;; (message "closing")
-            (indent-line-to (max 0 indent))))
     (let ((prev-html (save-excursion
                        (forward-line -1)
                        (end-of-line)
@@ -120,6 +107,14 @@
                            (in-html-p)))
           (curr-html (in-html-p)))
       (cond
+       ;; closing tag
+       ((looking-at "</")
+        (let* ((indent
+                (save-excursion
+                  (forward-sexp 1)
+                  (sgml-skip-tag-backward 1)
+                  (- (point) (progn (beginning-of-line) (point))))))
+          (indent-line-to (max 0 indent))))
        ;; after closing tag and end of lisp form
        ((and prev-html
              (save-excursion
