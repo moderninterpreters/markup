@@ -687,3 +687,6 @@ set children as (\"x\" <h1>y</h1>).
 
 (defun write-xml-to-stream (tree stream)
   (write-html-to-stream tree stream))
+
+(deftag merge-tag (children)
+  (make-merge-tag children))

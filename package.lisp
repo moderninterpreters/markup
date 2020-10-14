@@ -18,6 +18,7 @@
            #:write-html-to-stream
            #:deftag
            #:walk
+           #:merge-tag
            #:add-attrs
            #:xml-tag
            #:xml-tag-children
