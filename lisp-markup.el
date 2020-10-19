@@ -30,11 +30,6 @@
    ("=[^[:space:]<>]+[^\"/) ]\\(/\\|>\\)" 1 font-lock-warning-face))
  'prepend)
 
-(font-lock-add-keywords
- 'lisp-mode
- '(("&[^ ]+;" . font-lock-builtin-face))
- 'prepend)
-
 ;;; context
 (defun in-html-p ()
   (save-excursion
