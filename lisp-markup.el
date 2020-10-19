@@ -3,6 +3,9 @@
 (require 'sgml-mode)
 (require 'lisp-mode)
 
+(modify-syntax-entry ?' "." sgml-tag-syntax-table)
+(modify-syntax-entry ?' "." lisp-mode-syntax-table)
+
 (defmacro with-<>-as-brackets (&rest body)
   (declare (indent 1))
   `(let ((syntax-table (syntax-table))
