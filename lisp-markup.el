@@ -147,8 +147,7 @@
           ;; (message "lisp")
           (cond
            ((and indent (listp indent)) (indent-line-to (car indent)))
-           (indent (indent-line-to indent))
-           (:else (special-lisp-html-indent-line))))))))
+           (indent (indent-line-to indent))))))))
   (when (< (point) (save-excursion (back-to-indentation) (point)))
     (back-to-indentation)))
 (defun lisp-html-indent-region (beg end)
