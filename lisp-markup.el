@@ -9,6 +9,7 @@
 (modify-syntax-entry 41 "|" sgml-tag-syntax-table)
 
 (defmacro with-<>-as-brackets (&rest body)
+  (declare (indent 0))
   `(let ((syntax-table (syntax-table))
          (< (string (char-syntax ?<)))
          (> (string (char-syntax ?>)))
@@ -157,7 +158,7 @@
          (prev-html
           ;; (message "html")
           (with-<>-as-brackets
-           (sgml-indent-line)))
+            (sgml-indent-line)))
          ;; lisp indent
          (:else
           (let ((indent (calculate-lisp-indent)))
@@ -193,7 +194,7 @@ Just calls `lisp-html-indent-line' on every line of the region."
   (when (= ?< (char-before (1- (point))))
     (backward-delete-char 2)
     (with-<>-as-brackets
-        (sgml-close-tag))
+      (sgml-close-tag))
     (when (= ?> (or (char-after) 0))
       (delete-char 1))))
 (define-key lisp-mode-map (kbd "/") #'html-/-close-tag)
