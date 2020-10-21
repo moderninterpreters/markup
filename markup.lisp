@@ -618,6 +618,7 @@
 
 (defmacro %deftag (name (children &optional (key-attr '&key) &rest args) &body body)
   (assert (eql '&key key-attr))
+
   `(defun ,name (&key (attributes nil) (children nil))
      (destructuring-bind (&key ,@args) (loop for x in attributes
                                           append (list (intern (string-upcase (car x)) "KEYWORD") (cdr x)))
