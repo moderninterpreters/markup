@@ -4,7 +4,7 @@
   ((symbol :type symbol
            :initarg :symbol)
    (hidden-symbol :type symbol
-                  :initform (gensym (string symbol))
+                  :initform (gensym)
                   :reader %hidden-symbol)
    (void-tag-p :type boolean
                :accessor void-tag-p
@@ -26,3 +26,10 @@
              (place)
              (setf (place) (make-instance 'symbol-info
                                           :symbol sym))))))))
+
+(defun (setf mdefinition) (val sym)
+  (setf (si-fdefinition (symbol-info sym))
+        val))
+
+(defun mdefinition (sym)
+  (si-fdefinition (symbol-info sym)))
