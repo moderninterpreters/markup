@@ -465,7 +465,7 @@
 
        (when attributes
          (setf args (append (list :attributes attributes) args)))
-       (apply (mdefinition name) args)))))
+       (apply (%mdefinition name) args)))))
 
 (defgeneric write-html-to-stream (tree stream))
 
