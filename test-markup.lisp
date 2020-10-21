@@ -141,6 +141,11 @@
        (markup:write-html <:h1>Foo was </:h1>)
        (markup:write-html <wrapper></wrapper>))))
 
+(test call-wrapper-as-mcro
+  (is (equal
+       (markup:write-html <:h1>Foo was blah</:h1>)
+       (markup:write-html (wrapper (:foo "blah"))))))
+
 (markup:deftag wrapper2 (children &key (foo "defaultvalue"))
   (declare (ignore children))
   <:h1>Foo was ,(progn foo)</:h1>)
@@ -164,6 +169,17 @@
   (is (equal
        (markup:write-html <:h1>Foo was defaultvalue<:blah></:blah></:h1>)
        (markup:write-html <wrapper-with-children><:blah></:blah></wrapper-with-children>))))
+
+(test function-calls-wrapper-as-func
+  (is (equal
+       (markup:write-html <:h1>Foo was blah</:h1>)
+       (markup:write-html
+        (wrapper-with-children (:foo "blah")))))
+  (is (equal
+       (markup:write-html <:h1>Foo was defaultvalue<:blah></:blah></:h1>)
+       (markup:write-html
+        (wrapper-with-children ()
+            <:blah></:blah>)))))
 
 (test commas
   (is (equal

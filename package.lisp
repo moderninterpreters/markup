@@ -3,6 +3,8 @@
 (defpackage #:markup
   (:use #:cl
         #:named-readtables)
+  (:import-from :alexandria
+                :assoc-value)
   (:export #:read-xml
            #:make-xml-tag
            #:make-merge-tag
