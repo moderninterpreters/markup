@@ -5,17 +5,28 @@
 
 (modify-syntax-entry ?' "." sgml-tag-syntax-table)
 (modify-syntax-entry ?' "." lisp-mode-syntax-table)
+(modify-syntax-entry 40 "|" sgml-tag-syntax-table)
+(modify-syntax-entry 41 "|" sgml-tag-syntax-table)
 
 (defmacro with-<>-as-brackets (&rest body)
-  (declare (indent 1))
   `(let ((syntax-table (syntax-table))
          (< (string (char-syntax ?<)))
-         (> (string (char-syntax ?>))))
+         (> (string (char-syntax ?>)))
+         (restore (lambda ()
+                   (modify-syntax-entry ?< < syntax-table)
+                   (modify-syntax-entry ?> > syntax-table)
+                   (modify-syntax-entry 40 "()" syntax-table)
+                   (modify-syntax-entry 41 ")(" syntax-table))))
      (modify-syntax-entry ?< "(" syntax-table)
      (modify-syntax-entry ?> ")" syntax-table)
-     ,@body
-     (modify-syntax-entry ?< < syntax-table)
-     (modify-syntax-entry ?> > syntax-table)))
+     (modify-syntax-entry 40 "\"" syntax-table)
+     (modify-syntax-entry 41 "\"" syntax-table)
+     (condition-case error
+         (progn ,@body)
+       (t
+        (funcall restore)
+        (error error)))
+     (funcall restore)))
 
 ;;; syntax highlighting
 (font-lock-add-keywords
@@ -79,15 +90,17 @@
   (let ((tag-name (save-excursion
                     (buffer-substring-no-properties
                      (+ (point) 1) (- (search-forward-regexp "[>/[:space:]]") 1)))))
-    (with-<>-as-brackets
-      (forward-sexp 1)
-      (if (looking-back "/>" 1)
-          (point)
-          (condition-case nil
-              (progn
-                (search-forward (concat "</" tag-name ">"))
-                (point))
-            (t (point-max)))))
+    ;; move to the end of this tag top
+    (forward-char)
+    (while (/= ?> (char-before))
+      (forward-sexp))
+    (if (looking-back "/>" 1)
+        (point)
+      (condition-case nil
+          (progn
+            (search-forward (concat "</" tag-name ">"))
+            (point))
+        (t (point-max))))
     (point)))
 
 ;;; indentation
@@ -95,62 +108,63 @@
   "Indent a line of lisp or html."
   (interactive)
   (save-excursion
-    (back-to-indentation)
-    (let ((prev-html (save-excursion
-                       (forward-line -1)
-                       (end-of-line)
-                       (in-html-p)))
-          (beg-line-html (save-excursion
-                           (beginning-of-line)
-                           (in-html-p)))
-          (curr-html (in-html-p)))
-      (cond
-       ;; closing tag
-       ((looking-at "</")
-        (let* ((indent
-                (save-excursion
-                  (forward-sexp 1)
-                  (sgml-skip-tag-backward 1)
-                  (- (point) (progn (beginning-of-line) (point))))))
-          (indent-line-to (max 0 indent))))
-       ;; after closing tag and end of lisp form
-       ((and prev-html
-             (save-excursion
-               (forward-line -1)
-               (end-of-line)
-               (skip-chars-backward "\t\r\n ")
-               (and (= (char-before) 41)
-                    (progn
-                      (forward-sexp -1)
-                      (skip-chars-backward ",@")
-                      (= (char-after) ?,)))))
-        (indent-line-to
-         (save-excursion
-           (forward-sexp -1)
-           (current-indentation))))
-       ;;
-       ((and prev-html
-             (save-excursion
-               (forward-line -1)
-               (back-to-indentation)
-               (looking-at "</")))
-        (indent-line-to
-         (save-excursion
-           (forward-line -1)
-           (back-to-indentation)
-           (- (point) (progn (beginning-of-line) (point))))))
-       ;; sgml indent
-       (prev-html
-        ;; (message "html")
-        (with-<>-as-brackets
-            (sgml-indent-line)))
-       ;; lisp indent
-       (:else
-        (let ((indent (calculate-lisp-indent)))
-          ;; (message "lisp")
-          (cond
-           ((and indent (listp indent)) (indent-line-to (car indent)))
-           (indent (indent-line-to indent))))))))
+    (with-syntax-table lisp--mode-syntax-table
+      (back-to-indentation)
+      (let ((prev-html (save-excursion
+                         (forward-line -1)
+                         (end-of-line)
+                         (in-html-p)))
+            (beg-line-html (save-excursion
+                             (beginning-of-line)
+                             (in-html-p)))
+            (curr-html (in-html-p)))
+        (cond
+         ;; closing tag
+         ((looking-at "</")
+          (let* ((indent
+                  (save-excursion
+                    (forward-sexp 1)
+                    (sgml-skip-tag-backward 1)
+                    (- (point) (progn (beginning-of-line) (point))))))
+            (indent-line-to (max 0 indent))))
+         ;; after closing tag and end of lisp form
+         ((and prev-html
+               (save-excursion
+                 (forward-line -1)
+                 (end-of-line)
+                 (skip-chars-backward "\t\r\n ")
+                 (and (= (char-before) 41)
+                      (progn
+                        (forward-sexp -1)
+                        (skip-chars-backward ",@")
+                        (= (char-after) ?,)))))
+          (indent-line-to
+           (save-excursion
+             (forward-sexp -1)
+             (current-indentation))))
+         ;;
+         ((and prev-html
+               (save-excursion
+                 (forward-line -1)
+                 (back-to-indentation)
+                 (looking-at "</")))
+          (indent-line-to
+           (save-excursion
+             (forward-line -1)
+             (back-to-indentation)
+             (- (point) (progn (beginning-of-line) (point))))))
+         ;; sgml indent
+         (prev-html
+          ;; (message "html")
+          (with-<>-as-brackets
+           (sgml-indent-line)))
+         ;; lisp indent
+         (:else
+          (let ((indent (calculate-lisp-indent)))
+            ;; (message "lisp")
+            (cond
+             ((and indent (listp indent)) (indent-line-to (car indent)))
+             (indent (indent-line-to indent)))))))))
   (when (< (point) (save-excursion (back-to-indentation) (point)))
     (back-to-indentation)))
 (defun lisp-html-indent-region (beg end)
@@ -180,7 +194,7 @@ Just calls `lisp-html-indent-line' on every line of the region."
     (backward-delete-char 2)
     (with-<>-as-brackets
         (sgml-close-tag))
-    (when (= ?> (char-after))
+    (when (= ?> (or (char-after) 0))
       (delete-char 1))))
 (define-key lisp-mode-map (kbd "/") #'html-/-close-tag)
 (define-key lisp-mode-map (kbd "C-c C-o") #'sgml-tag)
