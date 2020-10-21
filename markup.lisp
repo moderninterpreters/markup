@@ -618,15 +618,21 @@
 
 (defmacro %deftag (name (children &optional (key-attr '&key) &rest args) &body body)
   (assert (eql '&key key-attr))
-  `(setf
-    (get ',name 'markup-fn)
-    (lambda (&key (attributes nil) (children nil))
-      (block ,name
-       (destructuring-bind (&key ,@args) (loop for x in attributes
-                                               append (list (intern (string-upcase (car x)) "KEYWORD") (cdr x)))
-         (let ((,children children))
-           (declare (ignorable ,children))
-           ,@body))))))
+  `(progn
+     (setf
+      (get ',name 'markup-fn)
+      (lambda (&key (attributes nil) (children nil))
+        (block ,name
+          (destructuring-bind (&key ,@args) (loop for x in attributes
+                                                  append (list (intern (string-upcase (car x)) "KEYWORD") (cdr x)))
+            (let ((,children children))
+              (declare (ignorable ,children))
+              ,@body)))))
+     (defmacro ,name ((&rest attributes) &body body)
+       (let ((name ',name))
+        `(funcall (get ',name 'markup-fn)
+                  :children (list ,@body)
+                  :attributes (alexandria:plist-alist (list ,@attributes)))))))
 
 (defmacro deftag (name (&rest args) &body body)
   "Define a new XML tag that.
