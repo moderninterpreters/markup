@@ -639,10 +639,9 @@
                 (attributes (subseq attrs-and-body 0 body-pos))
                 (body (subseq attrs-and-body body-pos))
                 (name ',name))
-           (let ((attr))
-             `(funcall (get ',name 'markup-fn)
-                       :children (list ,@body)
-                       :attributes (alexandria:plist-alist (list ,@attributes)))))))))
+           `(funcall (get ',name 'markup-fn)
+                     :children (list ,@body)
+                     :attributes (alexandria:plist-alist (list ,@attributes))))))))
 
 (defmacro deftag (name (&rest args) &body body)
   "Define a new XML tag that.
