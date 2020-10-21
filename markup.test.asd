@@ -8,7 +8,6 @@
                :fiveam)
   :serial t
   :components ((:file "test-markup")
-               (:file "test-symbol-info")
                (:file "test-walk")
                (:file "test-stream"))
 

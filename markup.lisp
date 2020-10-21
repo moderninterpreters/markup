@@ -383,7 +383,7 @@
             (parse-error "not terminating with >")))
 
 
-      (let ((ret (list 'make-xml-tag (read-tag-from-string name))))
+      (let ((ret (list 'make-xml-tag  (read-tag-from-string name))))
         (when attributes
           (setf ret
                 (append ret
@@ -465,7 +465,7 @@
 
        (when attributes
          (setf args (append (list :attributes attributes) args)))
-       (apply (%mdefinition name) args)))))
+       (apply (get name 'markup-fn) args)))))
 
 (defgeneric write-html-to-stream (tree stream))
 
@@ -619,7 +619,7 @@
 (defmacro %deftag (name (children &optional (key-attr '&key) &rest args) &body body)
   (assert (eql '&key key-attr))
   `(setf
-    (mdefinition ',name)
+    (get ',name 'markup-fn)
     (lambda (&key (attributes nil) (children nil))
       (block ,name
        (destructuring-bind (&key ,@args) (loop for x in attributes

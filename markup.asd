@@ -13,6 +13,5 @@
                #:trivial-gray-streams)
   :components ((:file "package")
                (:file "stream")
-               (:file "symbol-info")
                (:file "markup")
                (:file "walk")))
