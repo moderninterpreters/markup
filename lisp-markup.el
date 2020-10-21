@@ -92,9 +92,13 @@
                     (buffer-substring-no-properties
                      (+ (point) 1) (- (search-forward-regexp "[>/[:space:]]") 1)))))
     ;; move to the end of this tag top
-    (forward-char)
-    (while (/= ?> (char-before))
-      (forward-sexp))
+    (condition-case nil
+        (with-<>-as-brackets
+          (forward-sexp))
+        (t ;; recover from <> being in html attribute
+         (forward-char)
+         (while (/= ?> (char-before))
+           (forward-sexp))))
     (if (looking-back "/>" 1)
         (point)
       (condition-case nil
