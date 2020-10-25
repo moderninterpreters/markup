@@ -628,7 +628,7 @@
             (let ((,children children))
               (declare (ignorable ,children))
               ,@body)))))
-     (defmacro ,name (&body attrs-and-body)
+     (defun ,name (&rest attrs-and-body)
        (labels ((find-non-keyword-pos (x pos)
                   (cond
                     ((null x) pos)
@@ -639,9 +639,9 @@
                 (attributes (subseq attrs-and-body 0 body-pos))
                 (body (subseq attrs-and-body body-pos))
                 (name ',name))
-           `(funcall (get ',name 'markup-fn)
-                     :children (list ,@body)
-                     :attributes (alexandria:plist-alist (list ,@attributes))))))))
+           (funcall (get name 'markup-fn)
+                    :children body
+                    :attributes (alexandria:plist-alist attributes)))))))
 
 (defmacro deftag (name (&rest args) &body body)
   "Define a new XML tag that.

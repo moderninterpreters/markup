@@ -141,7 +141,7 @@
        (markup:write-html <:h1>Foo was </:h1>)
        (markup:write-html <wrapper></wrapper>))))
 
-(test call-wrapper-as-mcro
+(test call-wrapper-as-function
   (is (equal
        (markup:write-html <:h1>Foo was blah</:h1>)
        (markup:write-html (wrapper :foo "blah")))))
