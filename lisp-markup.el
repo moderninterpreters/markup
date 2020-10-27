@@ -97,10 +97,12 @@
           (forward-sexp))
         (t ;; recover from <> being in html attribute
          (forward-char)
-         (while (/= ?> (char-before))
-           (forward-sexp))))
+         (while (/= ?> (char-after))
+           (forward-sexp)
+           (skip-chars-forward "\n\t\r/ "))
+         (skip-chars-forward "/>")))
     (if (looking-back "/>" 1)
-        (point)
+        (point) ;; self closing tag: this is the end
       (condition-case nil
           (progn
             (search-forward (concat "</" tag-name ">"))
