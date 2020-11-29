@@ -35,14 +35,16 @@
  ;; keyword tag names
  '(("</?\\(:[^>/=[:space:]]+\\)" 1 font-lock-builtin-face)
    ;; regular tag names
-   ("</?\\([^>/=[:space:]]*\\)" 1 font-lock-function-name-face)
+   ("</?\\([^!>/=[:space:]]*\\)" 1 font-lock-function-name-face)
    ;; attribute names
    ("[[:space:]]\\([-[:alpha:]]+\\)=" 1 font-lock-constant-face)
    ;; deftag faces
-   ("deftag" . font-lock-keyword-face)
-   ("deftag \\([^ ]+\\) " 1 font-lock-function-name-face)
+   ("(\\(deftag\\)" 1 font-lock-keyword-face)
+   ("(deftag \\([^ ]+\\) " 1 font-lock-function-name-face)
    ;; warning about single symbol lisp forms at the end of tags
-   ("=[^[:space:]<>]+[^\"/) ]\\(/\\|>\\)" 1 font-lock-warning-face))
+   ("=[^[:space:]<>]+[^\"/) ]\\(/\\|>\\)" 1 font-lock-warning-face)
+   ;; html comments
+   ("<!--.*-->" . font-lock-comment-face))
  'prepend)
 
 ;;; context
