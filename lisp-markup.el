@@ -194,22 +194,26 @@ Just calls `lisp-html-indent-line' on every line of the region."
 (define-key lisp-mode-map (kbd "<return>") #'newline-and-indent)
 
 ;;; neato stuff
-(defun html-self-closes-p ()
+(defun html-closed-p ()
   "Call this when point is before starting angle bracket."
-  (save-excursion
-    (html-end-point)
-    (looking-back "/>")))
+    (save-excursion
+      (html-end-point)
+      (when (looking-back "</[^\t\r\n </>]*>\\|/>" 1)
+        (point))))
 
 (defun html-close-tag ()
   (interactive)
-  (let ((tag-name
-        (save-excursion
-          (cl-loop while (/= (point-max) (html-start-point))
-                   if (not (html-self-closes-p))
-                   return (buffer-substring-no-properties
-                           (+ (point) 1)
-                           (- (search-forward-regexp "[>/[:space:]]") 1))
-                   do (forward-char -1)))))
+  (let* ((point (point))
+         (tag-name
+          (save-excursion
+            (cl-loop while (/= (point-max) (html-start-point))
+                     for close = (html-closed-p)
+                     if (or (not close)
+                            (<= point close))
+                     return (buffer-substring-no-properties
+                             (+ (point) 1)
+                             (- (search-forward-regexp "[>/[:space:]]") 1))
+                     do (forward-char -1)))))
     (insert "</" tag-name ">")))
 
 (defun html-/-close-tag ()
@@ -219,7 +223,8 @@ Just calls `lisp-html-indent-line' on every line of the region."
     (backward-delete-char 2)
     (html-close-tag)
     (when (= ?> (or (char-after) 0))
-      (delete-char 1))))
+      (delete-char 1))
+    (lisp-html-indent-line)))
 
 (define-key lisp-mode-map (kbd "/") #'html-/-close-tag)
 (define-key lisp-mode-map (kbd "C-c C-o") #'sgml-tag)
