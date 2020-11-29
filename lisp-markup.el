@@ -181,10 +181,11 @@ Just calls `lisp-html-indent-line' on every line of the region."
   (save-excursion
     (goto-char beg)
     (let ((last-line (line-number-at-pos end)))
-      (while (and (<= (line-number-at-pos (point)) last-line)
-                  (<= (line-number-at-pos (point)) (line-number-at-pos (- (point-max) 1))))
-        (lisp-html-indent-line)
-        (forward-line 1)))))
+      (cl-loop
+       do (lisp-html-indent-line)
+       do (forward-line 1)
+       while (and (<= (line-number-at-pos (point)) last-line)
+                  (<= (line-number-at-pos (point)) (line-number-at-pos (- (point-max) 1))))))))
 ;; set indentation functions in hooks
 (defun set-lisp-html-indentation ()
   (setq indent-line-function #'lisp-html-indent-line)
