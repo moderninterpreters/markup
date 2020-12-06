@@ -89,8 +89,7 @@
        (markup:write-html <:foo bar="car"></:foo>))))
 
 
-(defun simple-wrapper (&key children attributes)
-  (declare (ignore children attributes))
+(deftag simple-wrapper ()
   <div></div>)
 
 (test function-calls
