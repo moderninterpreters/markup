@@ -263,7 +263,9 @@
        (markup:write-html <:body/>))))
 
 (test undefined-tag-signals-condition
-  (signals undefined-markup-tag-condition <undefined />))
+  ;; this convoluted eval avoids a style-warning while running the tests
+  (signals undefined-markup-tag-condition (eval '<undefined />)))
+
 
 (test default-escaping
   (is (equal

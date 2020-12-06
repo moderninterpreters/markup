@@ -448,8 +448,6 @@
 (defun make-merge-tag (children)
   (make-xml-merge-tag :children children))
 
-(define-condition undefined-markup-tag-warning (simple-warning) ())
-
 (define-condition undefined-markup-tag-condition (error)
   ((name :initarg :name
          :accessor tag-name)))
@@ -492,9 +490,8 @@
               (keywordp name)
               (standard-name? name)
               (get-markup-fn name))
-       (warn 'undefined-markup-tag-warning
-              :format-control "Undefined markup tag: ~a"
-              :format-arguments (list name)))))
+       #+sbcl
+       (sb-c::note-undefined-reference name :function))))
   whole)
 
 (defgeneric write-html-to-stream (tree stream))
