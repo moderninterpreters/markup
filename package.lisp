@@ -20,6 +20,7 @@
            #:write-html-to-stream
            #:deftag
            #:walk
+           #:undefined-markup-tag-condition
            #:merge-tag
            #:add-attrs
            #:xml-tag

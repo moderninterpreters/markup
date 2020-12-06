@@ -257,11 +257,14 @@
        "<body> <!----nospace----></body>"
        (markup:write-html <:body> <!----nospace----></:body>))))
 
+
 (test />-without-space
   (is (equal
        "<body></body>"
        (markup:write-html <:body/>))))
 
+(test undefined-tag-signals-condition
+  (signals undefined-markup-tag-condition <undefined />))
 
 (test default-escaping
   (is (equal

@@ -448,11 +448,24 @@
 (defun make-merge-tag (children)
   (make-xml-merge-tag :children children))
 
+(define-condition undefined-markup-tag-warning (simple-warning) ())
+
+(define-condition undefined-markup-tag-condition (error)
+  ((name :initarg :name
+         :accessor tag-name)))
+
+(defmethod print-object ((c undefined-markup-tag-condition) out)
+  (format out "Undefined tag: ~a" (Tag-name c)))
+
+(defun get-markup-fn (name)
+  (declare (inline))
+  (get name 'markup-fn))
+
 (defun make-xml-tag (name &key children attributes)
   (cond
     ((or
       (keywordp name)
-      (and (not (fboundp name))
+      (and (not (Get-markup-fn name))
            (standard-name? name)))
      (make-instance 'xml-tag
                     :name (intern (string name) "KEYWORD")
@@ -465,7 +478,24 @@
 
        (when attributes
          (setf args (append (list :attributes attributes) args)))
-       (apply (get name 'markup-fn) args)))))
+       (let ((fn (get-markup-fn name)))
+         (unless fn
+          (error 'undefined-markup-tag-condition :name name))
+         (apply fn args))))))
+
+(define-compiler-macro make-xml-tag (&whole whole quoted-name &rest args )
+  (declare (ignore args))
+  (when (and (listp quoted-name) ;; :h1 is not quoted
+             (eql 'quote (Car quoted-name)))
+    (let ((name (cadr quoted-name)))
+     (unless (or
+              (keywordp name)
+              (standard-name? name)
+              (get-markup-fn name))
+       (warn 'undefined-markup-tag-warning
+              :format-control "Undefined markup tag: ~a"
+              :format-arguments (list name)))))
+  whole)
 
 (defgeneric write-html-to-stream (tree stream))
 
