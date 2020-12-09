@@ -93,16 +93,18 @@
   (let ((tag-name (save-excursion
                     (buffer-substring-no-properties
                      (+ (point) 1) (- (search-forward-regexp "[>/[:space:]]") 1)))))
-    ;; move to the end of this tag top
-    (condition-case nil
-        (with-<>-as-brackets
-          (forward-sexp))
-        (t ;; recover from <> being in html attribute
-         (forward-char)
-         (while (/= ?> (char-after))
-           (forward-sexp)
-           (skip-chars-forward "\n\t\r/ "))
-         (skip-chars-forward "/>")))
+    ;;; move to the end of this tag top
+    ;; move inside tag
+    (forward-char)
+    ;; move to end of tag or up to first attribute value
+    (while (not (member (char-before)
+                        '(?> ?=)))
+      (forward-char 1))
+    ;; move though attributes which should all be normal sexps
+    (while (/= ?> (char-before))
+      (forward-sexp)
+      (skip-chars-forward "\t\r\n ")
+      (skip-chars-forward "/>"))
     (if (looking-back "/>" 1)
         (point) ;; self closing tag: this is the end
       (condition-case nil
