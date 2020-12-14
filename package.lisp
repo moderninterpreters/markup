@@ -18,6 +18,7 @@
            #:enable-reader
            #:write-xml-to-stream ;; deprecated
            #:write-html-to-stream
+           #:format-attr-val
            #:deftag
            #:walk
            #:undefined-markup-tag-condition

@@ -539,7 +539,7 @@
 (defun print-escaped-text-minimal (value stream)
   (print-escaped-text value stream *escape-minimal-map*))
 
-(defun format-attr-val (stream val)
+(defmethod format-attr-val (stream val)
   (declare (optimize speed))
   (let ((val (cond
                ((null val) "")
