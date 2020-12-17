@@ -28,7 +28,7 @@ prominent disadvantages.
 First, there's all that double-quotes that becomes hard to track.
 
 Second, and more importantly: There are hundreds of templates and HTML
-snippeds on the internet that are hard to copy-paste into your project
+snippets on the internet that are hard to copy-paste into your project
 if you have to transform them into CL-WHO structures. Time is money.
 
 Finally, it's already hard to hire Lisp engineers. Don't you want to
