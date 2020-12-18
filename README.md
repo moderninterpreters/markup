@@ -65,7 +65,7 @@ that's not on our radar.
   </html>)
 
 (hunchentoot:define-easy-handler (foobar :uri "/") ()
-  (markup:write-xml
+  (markup:write-html
      <template title="Hello" >
         <h1>hello world!</h1>
      </template>))
