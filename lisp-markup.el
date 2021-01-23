@@ -58,7 +58,7 @@
      while (/= start (point-max))
      for end = (html-end-point)
      if (<= start point end)
-     return 
+     return
      (progn
        (not (cl-loop
              for lisp-start = (progn (goto-char (or lisp-start point))
@@ -119,7 +119,9 @@
   "Indent a line of lisp or html."
   (interactive)
   (save-excursion
-    (with-syntax-table lisp--mode-syntax-table
+    (with-syntax-table (if (>= emacs-major-version 28)
+                           lisp-mode-syntax-table
+                           lisp--mode-syntax-table)
       (back-to-indentation)
       (let ((prev-html (save-excursion
                          (forward-line -1)
