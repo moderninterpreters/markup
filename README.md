@@ -133,7 +133,16 @@ standard Lisp reader. A small caveat to this is that in some cases you need to h
 
 ### Is markup used in production?
 
-Yes it is! Right now it's used on several websites we've built. Granted, they're not high-traffic (for now), but they've solved all of our use cases reliably.
+Yes it is! Right now it's used on several websites we've
+built. They've solved all of our use cases reliably. The primary
+website we use this on is [Screenshotbot](http://screenshotbot.io), if
+you're building web interfaces, you might enjoy using Screenshotbot to
+keep testing the rendering of your UI in Continuous Integration. (For
+instance, we use Selenium tests to generate screenshots of
+Screenshotbot's UI.)
+
+Please do let us know if you use Markup on the sites you're
+building. We'd love to include them here.
 
 ## See also
 
