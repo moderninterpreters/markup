@@ -11,6 +11,7 @@
                #:named-readtables
                #:trivial-gray-streams)
   :components ((:file "stream")
+               (:file "tags")
                (:file "markup")
                (:file "walk")
                (:file "all")))
