@@ -1,4 +1,9 @@
-(in-package :test-markup)
+(uiop:define-package #:markup/test-walk
+    (:use #:cl
+          #:markup/walk
+          #:markup/markup
+          #:fiveam))
+(in-package #:markup/test-walk)
 
 (markup:enable-reader)
 

@@ -2,9 +2,9 @@
   (:use :cl
         :fiveam
         :markup)
-  (:import-from :markup
-                :wrap-stream
-                :read-so-far)
+  (:import-from #:markup/stream
+                #:wrap-stream
+                #:read-so-far)
   (:export))
 (in-package :markup.test-stream)
 

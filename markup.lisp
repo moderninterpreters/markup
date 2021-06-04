@@ -1,6 +1,38 @@
 ;; Copyright 2019, Modern Interpreters Inc
 
-(in-package #:markup)
+(uiop:define-package #:markup/markup
+  (:use #:cl
+        #:named-readtables)
+  (:import-from #:alexandria
+                #:assoc-value)
+  (:import-from #:markup/stream
+                #:markup-stream
+                #:wrap-stream)
+  (:export #:read-xml
+           #:make-xml-tag
+           #:make-merge-tag
+           #:write-xml ;; deprecated
+           #:write-html
+           #:xml-tag-name
+           #:xml-tag-attributes
+           #:unescaped
+           #:xml-merge-tag-children
+           #:xml-merge-tag
+           #:enable-reader
+           #:write-xml-to-stream ;; deprecated
+           #:write-html-to-stream
+           #:format-attr-val
+           #:deftag
+           #:undefined-markup-tag-condition
+           #:merge-tag
+           #:xml-tag
+           #:xml-tag-children
+           #:get-attr
+           #:write
+           #:syntax
+           #:markup-enable-reader
+           #:read-xml-from-string))
+(in-package #:markup/markup)
 
 (defmacro enable-reader ()
   `(named-readtables:in-readtable syntax))

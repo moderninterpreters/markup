@@ -4,7 +4,9 @@
 (defpackage #:test-markup
   (:use #:markup
         #:fiveam
-        #:cl))
+        #:cl)
+  (:import-from #:markup/markup
+                #:read-tag))
 (in-package #:test-markup)
 
 (markup:enable-reader)
@@ -15,8 +17,8 @@
   (is (equal 2 (+ 1 1))))
 
 (test read-tag
-  (is (equal "foo" (markup::read-tag (make-string-input-stream "foo>"))))
-  (is (equal "foo" (markup::read-tag (make-string-input-stream "foo bar>")))))
+  (is (equal "foo" (read-tag (make-string-input-stream "foo>"))))
+  (is (equal "foo" (read-tag (make-string-input-stream "foo bar>")))))
 
 
 (test read-xml

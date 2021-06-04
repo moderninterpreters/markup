@@ -1,5 +1,7 @@
-(in-package :markup)
-
+(uiop:define-package #:markup/stream
+    (:use :cl)
+  (:export #:wrap-stream))
+(in-package #:markup/stream)
 
 (defclass markup-stream (trivial-gray-streams:fundamental-character-stream)
   ((delegate

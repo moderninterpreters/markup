@@ -10,7 +10,7 @@
                #:alexandria
                #:named-readtables
                #:trivial-gray-streams)
-  :components ((:file "package")
-               (:file "stream")
+  :components ((:file "stream")
                (:file "markup")
-               (:file "walk")))
+               (:file "walk")
+               (:file "all")))

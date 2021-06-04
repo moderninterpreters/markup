@@ -1,4 +1,19 @@
-(in-package :markup)
+(uiop:define-package #:markup/walk
+    (:use #:cl)
+  (:export #:walk
+           #:add-attrs)
+  (:import-from #:markup/markup
+                #:unescaped-string
+                #:escaped-string
+                #:make-xml-tag
+                #:make-xml-merge-tag
+                #:xml-merge-tag
+                #:xml-tag-name
+                #:xml-merge-tag-children
+                #:xml-tag-children
+                #:xml-tag
+                #:xml-tag-attributes))
+(in-package #:markup/walk)
 
 (defgeneric walk (tree fn)
   (:documentation "Walk the tree, giving you the option to transform
