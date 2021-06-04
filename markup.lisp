@@ -55,8 +55,7 @@
 (defun read-tag (stream)
   (flet ((peek-next-char () (peek-char nil stream t nil t))
          (read-next-char () (read-char stream t nil t)))
-    (let ((response nil)
-          (found-comment nil))
+    (let ((response nil))
       (block loop
        (loop
           until
@@ -228,6 +227,9 @@
 
       (let* ((tag-name (read-from-string name))
              (keywordp (keywordp tag-name))
+             (functionp (not (or
+                              keywordp
+                              (standard-name? tag-name))))
              (quoted-tag-name
                (cond
                  (keywordp
@@ -242,7 +244,10 @@
                          :attributes
                          `(list
                            ,@(loop for att in attributes
-                                collect `(cons ,(car att) ,(cdr att))))))))
+                                   collect `(cons ,(car att) ,(cdr att))))))))
+        (when functionp
+          (setf ret (append ret (list :unused `(lambda () (,tag-name))))))
+
         (when children
           (setf ret (append ret (list :children `(list ,@children)))))
         ret))))
@@ -288,7 +293,6 @@
              :initarg :children
              :accessor xml-tag-children
              :type (or null cons))
-   #-sbcl (unused :initarg :unused)
    (name :initform 'dummy
          :initarg :name
          :accessor xml-tag-name
@@ -311,7 +315,8 @@
   (declare (inline))
   (get name 'markup-fn))
 
-(defun make-xml-tag (name &key children attributes)
+(defun make-xml-tag (name &key children attributes unused)
+  (declare (ignore unused))
   (cond
     ((or
       (keywordp name)
@@ -332,19 +337,6 @@
          (unless fn
           (error 'undefined-markup-tag-condition :name name))
          (apply fn args))))))
-
-(define-compiler-macro make-xml-tag (&whole whole quoted-name &rest args )
-  (declare (ignore args))
-  (when (and (listp quoted-name) ;; :h1 is not quoted
-             (eql 'quote (Car quoted-name)))
-    (let ((name (cadr quoted-name)))
-     (unless (or
-              (keywordp name)
-              (standard-name? name)
-              (get-markup-fn name))
-       #+sbcl
-       (sb-c::note-undefined-reference name :function))))
-  whole)
 
 (defgeneric write-html-to-stream (tree stream))
 
