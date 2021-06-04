@@ -7,6 +7,7 @@
                 #:assoc-value)
   (:import-from #:markup/stream
                 #:markup-stream
+                #:read-so-far
                 #:wrap-stream)
   (:import-from #:markup/tags
                 #:*void-tags*
@@ -69,13 +70,6 @@
               (when (equalp '(#\- #\- #\!) response)
                 (return-from loop)))))
      (coerce (nreverse response) 'string))))
-
-
-(defun read-tag-from-string (name)
-  (let ((name (read-from-string name)))
-    (cond
-      ((keywordp name) name)
-      (t (list 'quote name)))))
 
 (defun whitespacep (char)
   (or
@@ -232,7 +226,15 @@
             (parse-error "not terminating with >")))
 
 
-      (let ((ret (list 'make-xml-tag  (read-tag-from-string name))))
+      (let* ((tag-name (read-from-string name))
+             (keywordp (keywordp tag-name))
+             (quoted-tag-name
+               (cond
+                 (keywordp
+                  ;; reduce the verbosity in the generated output
+                  tag-name)
+                 (t `(quote ,tag-name))))
+             (ret (list 'make-xml-tag quoted-tag-name)))
         (when attributes
           (setf ret
                 (append ret
@@ -286,6 +288,7 @@
              :initarg :children
              :accessor xml-tag-children
              :type (or null cons))
+   #-sbcl (unused :initarg :unused)
    (name :initform 'dummy
          :initarg :name
          :accessor xml-tag-name
