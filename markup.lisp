@@ -487,32 +487,36 @@
     (t (cadr arg))))
 
 
-(defmacro %deftag (name (children &optional (key-attr '&key) &rest args) &body body)
+(defmacro %deftag (name (children &optional (key-attr '&key) &rest args) &body decl-and-body)
   (assert (eql '&key key-attr))
-  `(progn
-     (setf
-      (get ',name 'markup-fn)
-      (lambda (&key (attributes nil) (children nil))
-        (block ,name
-          (destructuring-bind (&key ,@args) (loop for x in attributes
-                                                  append (list (intern (string-upcase (car x)) "KEYWORD") (cdr x)))
-            (let ((,children children))
-              (declare (ignorable ,children))
-              ,@body)))))
-     (defun ,name (&rest attrs-and-body)
-       (labels ((find-non-keyword-pos (x pos)
-                  (cond
-                    ((null x) pos)
-                    ((keywordp (car x))
-                     (find-non-keyword-pos (cddr x) (+ pos 2)))
-                    (t pos))))
-         (let* ((body-pos (find-non-keyword-pos attrs-and-body 0))
-                (attributes (subseq attrs-and-body 0 body-pos))
-                (body (subseq attrs-and-body body-pos))
-                (name ',name))
-           (funcall (get name 'markup-fn)
-                    :children body
-                    :attributes (alexandria:plist-alist attributes)))))))
+  (multiple-value-bind (body decls doc)
+      (alexandria:parse-body decl-and-body :documentation t)
+   `(progn
+      (setf
+       (get ',name 'markup-fn)
+       (lambda (&key (attributes nil) (children nil))
+         (block ,name
+           (destructuring-bind (&key ,@args) (loop for x in attributes
+                                                   append (list (intern (string-upcase (car x)) "KEYWORD") (cdr x)))
+             ,@decls
+             (let ((,children children))
+               (declare (ignorable ,children))
+               ,@body)))))
+      (defun ,name (&rest attrs-and-body)
+        ,doc
+        (labels ((find-non-keyword-pos (x pos)
+                   (cond
+                     ((null x) pos)
+                     ((keywordp (car x))
+                      (find-non-keyword-pos (cddr x) (+ pos 2)))
+                     (t pos))))
+          (let* ((body-pos (find-non-keyword-pos attrs-and-body 0))
+                 (attributes (subseq attrs-and-body 0 body-pos))
+                 (body (subseq attrs-and-body body-pos))
+                 (name ',name))
+            (funcall (get name 'markup-fn)
+                     :children body
+                     :attributes (alexandria:plist-alist attributes))))))))
 
 (defmacro deftag (name (&rest args) &body body)
   "Define a new XML tag that.
