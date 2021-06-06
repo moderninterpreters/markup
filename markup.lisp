@@ -41,6 +41,15 @@
 (defmacro enable-reader ()
   `(named-readtables:in-readtable syntax))
 
+#+lispworks
+(dspec:define-dspec-class deftag nil
+  "A markup deftag")
+
+#+lispworks
+(dspec:define-form-parser deftag (name &rest rest)
+  `(deftag ,name))
+
+
 (define-condition html-parse-error (error)
   ((message :initarg :message)
    (stream :initarg :stream)
@@ -535,7 +544,12 @@ set children as (\"x\" <h1>y</h1>).
            ((not args) (list (gensym)))
            ((eql '&key (car args)) (cons (gensym) args))
            (t args))))
-    `(%deftag ,name (,@args) ,@body)))
+    `(progn
+       #+lispworks
+       (dspec:record-definition `(deftag ,',name) (dspec:location))
+       (#+lispworks dspec:def #+lispworks (deftag ,name)
+        #-lispworks progn
+        (%deftag ,name (,@args) ,@body)))))
 
 
 (defclass unescaped-string ()
