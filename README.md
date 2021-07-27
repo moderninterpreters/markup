@@ -1,3 +1,5 @@
+[![Build Status](http://jenkins.tdrhq.com/buildStatus/icon?job=markup)](http://jenkins.tdrhq.com/job/markup/)
+
 # markup
 ### Arnold Noronha <arnold@tdrhq.com>
 
