@@ -1,6 +1,7 @@
-[![Build Status](http://jenkins.tdrhq.com/buildStatus/icon?job=markup)](http://jenkins.tdrhq.com/job/markup/)
-
 # markup
+
+[![tdrhq](https://circleci.com/gh/moderninterpreters/markup.svg?style=shield)](https://app.circleci.com/pipelines/github/moderninterpreters/markup?branch=main)
+
 ### Arnold Noronha <arnold@tdrhq.com>
 
 Markup let's you write HTML code inside of common lisp, for instance
