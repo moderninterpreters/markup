@@ -1,5 +1,5 @@
 
-CL?=sbcl --quit --eval
+CL?=sbcl --quit --eval "(require :asdf)" --eval
 TMP:=$(shell tempfile)
 
 test:
