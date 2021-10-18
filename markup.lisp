@@ -35,7 +35,9 @@
            #:write
            #:syntax
            #:markup-enable-reader
-           #:read-xml-from-string))
+           #:read-xml-from-string
+           #:empty-attribute
+           #:+empty+))
 (in-package #:markup/markup)
 
 (defmacro enable-reader ()
@@ -48,6 +50,12 @@
 #+lispworks
 (dspec:define-form-parser deftag (name &rest rest)
   `(deftag ,name))
+
+(defconstant +empty+ 'empty-attribute
+  "If you use this as an attribute value, it will render as an empty
+  attribute. For instance, you might have something like this:
+
+   <input required=(if (required-p) +empty+ nil) />")
 
 
 (define-condition html-parse-error (error)
@@ -124,12 +132,15 @@
          (let ((attr-key (read-attr-key stream)))
            (cons attr-key
                  (progn
-                   (let ((next-char (read-next-char)))
-                     (assert (eql #\= next-char)
-                             () "expected = after attribute ~S" attr-key))
-                   (let ((ret (read-attr-val stream)))
-                     (read-whitespace stream)
-                     ret)))))))
+                   (let ((next-char (peek-next-char)))
+                     (cond
+                       ((not (eql #\= next-char))
+                        '+empty+)
+                       (t
+                        (read-next-char) ;; the #\= we peeked at
+                        (let ((ret (read-attr-val stream)))
+                          (read-whitespace stream)
+                          ret))))))))))
 
 (defun read-string-from-xml (stream next)
   (declare (ignore next))
@@ -411,8 +422,9 @@
     (when (cdr attr)
        (write-char #\Space stream)
        (write-string (car attr) stream)
-       (write-char #\= stream)
-       (format-attr-val stream (cdr attr)))))
+       (unless (eql +empty+ (cdr attr))
+          (write-char #\= stream)
+          (format-attr-val stream (cdr attr))))))
 
 (defparameter *void-tag-cache* (make-hash-table))
 

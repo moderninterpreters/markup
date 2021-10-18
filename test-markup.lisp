@@ -6,6 +6,8 @@
         #:fiveam
         #:cl)
   (:import-from #:markup/markup
+                #:+empty+
+                #:empty-attribute
                 #:read-tag))
 (in-package #:test-markup)
 
@@ -46,11 +48,17 @@
          (list "blah"))
        (read-xml-from-string "<:foo>blah</:foo>"))))
 
+(test read-empty-attribute
+  (is (equal
+       '(make-xml-tag :foo :attributes
+         (list (cons "car" +empty+)))
+        (read-xml-from-string "<:foo car/>"))))
+
 (test read-attributes
   (is (equal
        '(make-xml-tag :foo :attributes
          (list (cons "car" "bar")))
-       (read-xml-from-string "<:foo car=\"bar\"></:foo>"))))
+        (read-xml-from-string "<:foo car=\"bar\"></:foo>"))))
 
 
 (test reader
@@ -285,3 +293,8 @@
   (is (equal
        "<h1>they’re</h1>"
        (markup:write-html <h1>they’re</h1>))))
+
+(test write-empty-attribute
+  (is (equal
+       "<foo car></foo>"
+       (markup:write-html <:foo car/>))))
