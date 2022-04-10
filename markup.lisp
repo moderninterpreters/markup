@@ -294,11 +294,24 @@
                     (declare (ignore e))
                     (warn "Got error while reading HTML. The last few characters we read were: ~% ~a"
                           (last-few-chars stream)))))
-      (read-xml-after-bracket stream (peek-char nil stream t nil t))))
+    (read-xml-after-bracket stream (peek-char nil stream t nil t))))
+
+(defmacro make-toplevel-node (node)
+  node)
+
+(defun read-xml-toplevel (stream char)
+  (let ((children (read-xml stream char)))
+    (cond
+      ((consp children)
+       `(make-toplevel-node
+         ,children))
+      (t
+       children))))
 
 (defreadtable syntax
   (:merge :standard)
-  (:macro-char #\< #'read-xml t))
+  (:macro-char #\< #'read-xml-toplevel t))
+
 
 (defun read-xml-from-string (string)
   (let ((stream (make-string-input-stream string)))

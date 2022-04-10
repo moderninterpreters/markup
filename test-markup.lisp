@@ -8,6 +8,7 @@
   (:import-from #:markup/markup
                 #:+empty+
                 #:empty-attribute
+                #:make-toplevel-node
                 #:read-tag))
 (in-package #:test-markup)
 
@@ -63,13 +64,15 @@
 
 (test reader
   (is (equal
-       '(make-xml-tag :foo :children
-         (list (make-xml-tag :bar)))
+       '(make-toplevel-node
+          (make-xml-tag :foo :children
+            (list (make-xml-tag :bar))))
        (quote <:foo><:bar></:bar></:foo>))))
 
 (test reader-with-attr
   (is (equal
-       '(make-xml-tag :foo :attributes (list (cons "car" "bar")))
+       '(make-toplevel-node
+         (make-xml-tag :foo :attributes (list (cons "car" "bar"))))
        (quote <:foo car="bar"></:foo>))))
 
 (test write-html
