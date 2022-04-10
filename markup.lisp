@@ -37,7 +37,8 @@
            #:markup-enable-reader
            #:read-xml-from-string
            #:empty-attribute
-           #:+empty+))
+           #:+empty+
+           #:optimize-markup))
 (in-package #:markup/markup)
 
 (defmacro enable-reader ()
@@ -296,8 +297,10 @@
                           (last-few-chars stream)))))
     (read-xml-after-bracket stream (peek-char nil stream t nil t))))
 
+
 (defmacro make-toplevel-node (node)
-  node)
+  (optimize-markup
+   node))
 
 (defun read-xml-toplevel (stream char)
   (let ((children (read-xml stream char)))

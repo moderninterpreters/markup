@@ -14,7 +14,8 @@
 
 (markup:enable-reader)
 
-(def-suite* :markup.test-markup)
+(def-suite* :markup)
+(def-suite* :markup.test-markup :in :markup)
 
 (test simple
   (is (equal 2 (+ 1 1))))

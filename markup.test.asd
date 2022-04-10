@@ -9,6 +9,7 @@
   :serial t
   :components ((:file "test-markup")
                (:file "test-walk")
+               (:file "test-optimizer")
                (:file "test-stream"))
 
   :perform (test-op (op system)

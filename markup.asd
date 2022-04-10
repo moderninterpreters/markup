@@ -13,5 +13,6 @@
   :components ((:file "stream")
                (:file "tags")
                (:file "markup")
+               (:file "optimizer")
                (:file "walk")
                (:file "all")))
