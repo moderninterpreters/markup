@@ -42,9 +42,11 @@
     (error (e)
       (format stream "#<LAZY-XML-TAG error printing>"))))
 
+(defvar *disable-optimizer* nil)
+
 (defmethod write-html-to-stream ((self lazy-xml-tag) stream)
   (cond
-    ((slot-boundp self 'delegate)
+    ((or *disable-optimizer* (slot-boundp self 'delegate))
      (write-html-to-stream (delegate self) stream))
     (t
      (loop for name in (standard-names self)
