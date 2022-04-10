@@ -140,12 +140,6 @@
         ;; At this point `inner` is comprised of just MAKE-XML-TAG,
         ;; LIST, CONS, and symbols referening registers or symbols
         ;; referencing names. This allows for an easier optimization.
-        ;;
-        ;; As of this writing/commit, there's no actual
-        ;; optimizer. Please check in here again to see if this
-        ;; comment is removed. We should have an optimizer soon that
-        ;; does not explode the DOM in most cases.
-
 
         `(let ,(reverse params)
            ,(cond
