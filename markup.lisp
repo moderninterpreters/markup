@@ -38,7 +38,8 @@
            #:read-xml-from-string
            #:empty-attribute
            #:+empty+
-           #:optimize-markup))
+           #:optimize-markup
+           #:abstract-xml-tag))
 (in-package #:markup/markup)
 
 (defmacro enable-reader ()
@@ -320,7 +321,8 @@
   (let ((stream (make-string-input-stream string)))
     (read-xml stream (read-char stream t nil t))))
 
-(defclass xml-tag ()
+
+(defclass xml-tag (abstract-xml-tag)
   ((attributes :initform nil
                :initarg :attributes
                :accessor xml-tag-attributes
@@ -468,7 +470,7 @@
        (setf (gethash tag *standard-name-cache*)
              (member (symbol-name tag) *standard-names* :test 'string=))))))
 
-(defmethod write-html-to-stream ((tree xml-tag) stream)
+(defmethod write-html-to-stream ((tree abstract-xml-tag) stream)
   (declare (optimize speed))
   (let ((tag-name (string-downcase (xml-tag-name tree))))
     (when (equal tag-name "html")
@@ -486,7 +488,7 @@
     (t
      (write-string " />" stream))))
 
-(defmethod get-attr ((xml-tag xml-tag) name)
+(defmethod get-attr ((xml-tag abstract-xml-tag) name)
   (alexandria:assoc-value (xml-tag-attributes xml-tag)
                           name
                         :test 'equal))
@@ -505,7 +507,7 @@
 (defmethod write-html-to-stream ((tree (eql nil)) stream)
   (declare (optimize speed))  )
 
-(defmethod print-object ((tree xml-tag) stream)
+(defmethod print-object ((tree abstract-xml-tag) stream)
   (declare (optimize speed))
   (write-html-to-stream tree stream))
 
@@ -586,9 +588,12 @@ set children as (\"x\" <h1>y</h1>).
 (defclass escaped-string ()
   ((content :initarg :content :accessor escaped-string-content)))
 
+(defclass abstract-xml-tag ()
+  ())
+
 (defun make-escaped (child)
   (typecase child
-    (xml-tag
+    (abstract-xml-tag
      child)
     (t (make-instance 'escaped-string
                     :content child))))
@@ -600,10 +605,10 @@ set children as (\"x\" <h1>y</h1>).
 (defmethod write-html-to-stream ((tree escaped-string) stream)
   (declare (optimize speed))
   (let ((content (escaped-string-content tree)))
-    (case (type-of content)
-      ('unescaped-string (write-html-to-stream content stream))
-      ('xml-tag (write-html-to-stream content stream))
-      ('xml-merge-tag (write-html-to-stream content stream))
+    (typecase content
+      (unescaped-string (write-html-to-stream content stream))
+      (xml-merge-tag (write-html-to-stream content stream))
+      (abstract-xml-tag (write-html-to-stream content stream))
       (t
        ;; else we need to escape this before writing
        (when content

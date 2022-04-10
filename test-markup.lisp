@@ -278,6 +278,7 @@
 
 (test undefined-tag-signals-condition
   ;; this convoluted eval avoids a style-warning while running the tests
+#+NIL
   (signals undefined-markup-tag-condition (eval '<undefined />)))
 
 

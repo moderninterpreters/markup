@@ -4,9 +4,40 @@
   (:use #:cl)
   (:import-from #:markup/markup
                 #:optimize-markup
+                #:abstract-xml-tag
+                #:xml-tag-attributes
+                #:standard-name?
+                #:xml-tag-children
+                #:xml-tag-name
                 #:make-xml-tag)
   (:local-nicknames (#:a #:alexandria)))
 (in-package :markup/optimizer)
+
+(defclass lazy-xml-tag (abstract-xml-tag)
+  ((delegate )
+   (xml-tag-builder :initarg :builder
+                    :reader xml-tag-builder)))
+
+(defmethod print-object :around ((tree lazy-xml-tag) stream)
+  (handler-case
+      (call-next-method)
+    (error (e)
+      (format stream "#<LAZY-XML-TAG error printing>"))))
+
+(defun delegate (tag)
+  (if (slot-boundp tag 'delegate)
+      (slot-value tag 'delegate)
+      (setf (slot-value tag 'delegate)
+            (funcall (xml-tag-builder tag)))))
+
+(defmethod xml-tag-name ((tag abstract-xml-tag))
+  (xml-tag-name (delegate tag)))
+
+(defmethod xml-tag-attributes ((Tag abstract-xml-tag))
+  (xml-tag-attributes (delegate tag)))
+
+(defmethod xml-tag-children ((Tag abstract-xml-tag))
+  (xml-tag-children (delegate tag)))
 
 (defun optimize-markup (tree)
   "Rewrite the tree of (make-xml-tag ...)s into something that can be
@@ -36,7 +67,10 @@
                  ((null sexp)
                   sexp)
                  ((and (consp sexp)
-                       (eql 'make-xml-tag (car sexp)))
+                       (eql 'make-xml-tag (car sexp))
+                       (or
+                        (keywordp (cadr sexp))
+                        (standard-name? (cadr (cadr sexp)))))
                   (destructuring-bind (name &key attributes children unused)
                       (cdr sexp)
                     (list
@@ -73,4 +107,14 @@
 
 
         `(let ,(reverse params)
-           ,inner)))))
+           ,(cond
+             ((symbolp inner)
+              inner)
+             (t
+              `(make-lazy-xml-tag
+                ,inner))))))))
+
+(defmacro make-lazy-xml-tag (body)
+  `(make-instance 'lazy-xml-tag
+                   :builder (lambda ()
+                              ,body)))

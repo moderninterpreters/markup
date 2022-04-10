@@ -11,7 +11,7 @@
                 #:xml-tag-name
                 #:xml-merge-tag-children
                 #:xml-tag-children
-                #:xml-tag
+                #:abstract-xml-tag
                 #:xml-tag-attributes))
 (in-package #:markup/walk)
 
@@ -41,13 +41,13 @@
   (loop for x in tree collect
        (walk x fn)))
 
-(Defmethod walk ((tree xml-tag) fn)
+(Defmethod walk ((tree abstract-xml-tag) fn)
   (let ((ret (funcall fn tree)))
     (make-xml-tag (xml-tag-name ret)
                   :attributes (xml-tag-attributes ret)
                   :children (walk (xml-tag-children ret) fn))))
 
-(defmethod add-attrs ((tag xml-tag) &rest args &key &allow-other-keys)
+(defmethod add-attrs ((tag abstract-xml-tag) &rest args &key &allow-other-keys)
   (let ((attr (xml-tag-attributes tag)))
     (dolist (item (alexandria:plist-alist args))
       (destructuring-bind (key . value) item
