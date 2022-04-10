@@ -431,6 +431,11 @@
     (print-escaped-text val stream)
     (write-char #\" stream)))
 
+(defmethod write-attribute-value (val stream)
+   "Writes the attribute value, including  if needed"
+  (unless (eql +empty+ val)
+     (write-char #\= stream)
+     (format-attr-val stream val)))
 
 (defun write-attributes (attributes stream)
   (declare (type (or null cons) attributes))
@@ -440,9 +445,7 @@
     (when (cdr attr)
        (write-char #\Space stream)
        (write-string (car attr) stream)
-       (unless (eql +empty+ (cdr attr))
-          (write-char #\= stream)
-          (format-attr-val stream (cdr attr))))))
+       (write-attribute-value (cdr attr) stream))))
 
 (defparameter *void-tag-cache* (make-hash-table))
 

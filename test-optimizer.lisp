@@ -19,6 +19,8 @@
   (with-fixture state ()
     (is (equal '(let nil
                  (make-lazy-xml-tag
+                  ()
+                  (div)
                   (make-xml-tag 'div :attributes nil  :children nil :unused nil)))
                (optimize-markup '(make-xml-tag 'div :children nil :attributes nil :unused nil))))))
 
@@ -26,6 +28,8 @@
   (with-fixture state ()
     (is (equal '(let ((r1 (format nil "~a" car)))
                  (make-lazy-xml-tag
+                  (r1)
+                  (div)
                   (make-xml-tag 'div :attributes nil :children (list r1) :unused nil)))
                 (optimize-markup '(make-xml-tag 'div :children (list
                                                                (format nil "~a" car))
@@ -37,6 +41,8 @@
     (is (equal '(let ((r1 (format nil "~a" car))
                       (r2 bar))
                  (make-lazy-xml-tag
+                  (r1 r2)
+                  (span)
                   (make-xml-tag 'span :attributes nil :children (list r1 r2) :unused nil)))
                 (optimize-markup '(make-xml-tag 'span :children (list
                                                                (format nil "~a" car)
@@ -48,6 +54,8 @@
   (with-fixture state ()
     (is (equal '(let ((r1 (format nil "~a" car)))
                  (make-lazy-xml-tag
+                  (r1)
+                  (input)
                   (make-xml-tag 'input :attributes (list (cons "car" r1)) :children nil
                                     :unused nil)))
                 (optimize-markup '(make-xml-tag 'input :children nil
@@ -59,6 +67,8 @@
     (is (equal '(let ((r1 (format nil "~a" car))
                       (r2 bar))
                  (make-lazy-xml-tag
+                  (r1 r2)
+                  (div)
                   (make-xml-tag 'div :attributes (list (cons "car" r1)) :children (list r2)
                                     :unused nil)))
                 (optimize-markup '(make-xml-tag 'div :children (list bar)
