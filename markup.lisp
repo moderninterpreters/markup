@@ -388,25 +388,26 @@
   (with-output-to-string (stream)
     (write-html-to-stream tree stream)))
 
-(defmacro make-escape-map (&rest alist)
-  `(let ((ar (make-array 256 :element-type '(or null string) :initial-element nil)))
-     (loop for (char . escaped) in ',alist
-        do (setf (aref ar (char-code char)) escaped))
-     ar))
+(eval-when (:compile-toplevel :load-toplevel)
+ (defun make-escape-map (alist)
+   (let ((ar (make-array 256 :element-type '(or null string) :initial-element nil)))
+     (loop for (char . escaped) in alist
+           do (setf (aref ar (char-code char)) escaped))
+     ar)))
 
 (defconstant +escape-map+
-  (make-escape-map (#\& . "&amp;")
+  (make-escape-map '((#\& . "&amp;")
                    (#\< . "&lt;")
                    (#\> . "&gt;")
                    (#\" . "&quot;")
-                   (#\' . "&#39;")))
+                   (#\' . "&#39;"))))
 
 
 ;; this mapping is taken from CL-WHO's escape-char-minimal
 (defconstant +escape-minimal-map+
-  (make-escape-map (#\& . "&amp;")
+  (make-escape-map '((#\& . "&amp;")
                    (#\< . "&lt;")
-                   (#\> . "&gt;")))
+                   (#\> . "&gt;"))))
 
 ;; This function was copied and tweaked from LSX. Previously I
 ;; depended on CL-WHO for escaping, but this is better.
