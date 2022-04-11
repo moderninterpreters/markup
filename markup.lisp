@@ -389,7 +389,7 @@
     (write-html-to-stream tree stream)))
 
 (defmacro make-escape-map (&rest alist)
-  `(let ((ar (make-array 32000 :element-type '(or null string) :initial-element nil)))
+  `(let ((ar (make-array 256 :element-type '(or null string) :initial-element nil)))
      (loop for (char . escaped) in ',alist
         do (setf (aref ar (char-code char)) escaped))
      ar))
