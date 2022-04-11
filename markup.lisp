@@ -394,7 +394,7 @@
         do (setf (aref ar (char-code char)) escaped))
      ar))
 
-(defparameter *escape-map*
+(defconstant +escape-map+
   (make-escape-map (#\& . "&amp;")
                    (#\< . "&lt;")
                    (#\> . "&gt;")
@@ -403,25 +403,25 @@
 
 
 ;; this mapping is taken from CL-WHO's escape-char-minimal
-(defparameter *escape-minimal-map*
+(defconstant +escape-minimal-map+
   (make-escape-map (#\& . "&amp;")
                    (#\< . "&lt;")
                    (#\> . "&gt;")))
 
 ;; This function was copied and tweaked from LSX. Previously I
 ;; depended on CL-WHO for escaping, but this is better.
-(defun print-escaped-text (value stream &optional (escape-map *escape-map*))
+(defun print-escaped-text (value stream &optional (escape-map +escape-map+))
   (declare (type string value)
-           (type (simple-array (or null string) (*)) escape-map)
-           (optimize speed))
+          (optimize (speed 3) (debug 0) (safety 0)))
   (loop for char of-type character across value
-     for escaped = (if (< (char-code char) 256) (aref escape-map (char-code char)))
-     if escaped
-     do (write-string escaped stream)
-     else do (write-char char stream)))
+       for escaped = (if (char< char #\A) (aref escape-map (char-code char)))
+       if escaped
+         do (write-string escaped stream)
+       else do (write-char char stream)))
+
 
 (defun print-escaped-text-minimal (value stream)
-  (print-escaped-text value stream *escape-minimal-map*))
+  (print-escaped-text value stream +escape-minimal-map+))
 
 (defmethod format-attr-val (stream val)
   (declare (optimize speed))
