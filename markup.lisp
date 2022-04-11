@@ -321,6 +321,8 @@
   (let ((stream (make-string-input-stream string)))
     (read-xml stream (read-char stream t nil t))))
 
+(defclass abstract-xml-tag ()
+  ())
 
 (defclass xml-tag (abstract-xml-tag)
   ((attributes :initform nil
@@ -591,8 +593,6 @@ set children as (\"x\" <h1>y</h1>).
 (defclass escaped-string ()
   ((content :initarg :content :accessor escaped-string-content)))
 
-(defclass abstract-xml-tag ()
-  ())
 
 (defun make-escaped (child)
   (typecase child
