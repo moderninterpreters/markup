@@ -4,6 +4,7 @@
   (:use #:cl)
   (:import-from #:markup/markup
                 #:optimize-markup
+                #:make-toplevel-node
                 #:abstract-xml-tag
                 #:xml-tag
                 #:xml-tag-attributes
@@ -38,7 +39,9 @@
 
 (defmethod print-object :around ((tree lazy-xml-tag) stream)
   (handler-case
-      (call-next-method)
+      (print-object
+       (funcall (xml-tag-builder tree))
+       stream)
     (error (e)
       (format stream "#<LAZY-XML-TAG error printing>"))))
 
@@ -71,10 +74,16 @@
 (defmethod xml-tag-attributes ((Tag abstract-xml-tag))
   (xml-tag-attributes (delegate tag)))
 
+(defmethod (setf xml-tag-attributes) (value (tag abstract-xml-tag))
+  (setf (xml-tag-attributes (delegate tag)) value))
+
 (defmethod xml-tag-children ((Tag abstract-xml-tag))
   (xml-tag-children (delegate tag)))
 
-(defun optimize-markup (tree)
+(defmethod optimize-markup ((tree t))
+  tree)
+
+(defmethod optimize-markup ((tree cons))
   "Rewrite the tree of (make-xml-tag ...)s into something that can be
   more efficiently rendered in the most frequent case."
 
@@ -96,6 +105,10 @@
                  (assert (eql 'list (car x)))
                  (list* 'list
                          (mapcar #'walk (cdr x)))))
+             (evaluate-separately (sexp)
+               (let ((sym (make-sym)))
+                 (push (list sym sexp) params)
+                 sym))
              (walk (sexp)
                "Replaces the node with the optimized version, with all
              parameters replaced and rewritten in params."
@@ -103,23 +116,36 @@
                  ((null sexp)
                   sexp)
                  ((and (consp sexp)
-                       (eql 'make-xml-tag (car sexp))
-                       (or
-                        (keywordp (cadr sexp))
-                        (let ((name (cadr (cadr sexp))))
-                         (and
-                          (standard-name? name)
-                          (not (get-markup-fn name))))))
-                  (destructuring-bind (name &key attributes children unused)
-                      (cdr sexp)
-                    (unless (keywordp name)
-                     (pushnew (cadr name) standard-names))
-                    (list
-                     'make-xml-tag
-                      name
-                      :attributes (walk-alist attributes)
-                      :children (walk-list children)
-                      :unused unused)))
+                       (eql 'make-xml-tag (car sexp)))
+                  (cond
+                    ((or
+                      (keywordp (cadr sexp))
+                      (let ((name (cadr (cadr sexp))))
+                        (and
+                         (standard-name? name)
+                         (not (get-markup-fn name)))))
+                     (destructuring-bind (name &key attributes children unused)
+                         (cdr sexp)
+                       (unless (keywordp name)
+                         (pushnew (cadr name) standard-names))
+                       (list
+                        'make-xml-tag
+                        name
+                        :attributes (walk-alist attributes)
+                        :children (walk-list children)
+                        :unused unused)))
+                    (t
+                     (destructuring-bind (name &key attributes children unused)
+                         (cdr sexp)
+                       (evaluate-separately
+                        (list
+                         'make-xml-tag
+                          name
+                          :attributes attributes
+                          :children (when children
+                                      `(list ,@(loop for child in (cdr children)
+                                                    collect `(make-toplevel-node ,child))))
+                         :unused unused))))))
                  ((and (consp sexp)
                        (stringp (car sexp)))
                   ;; attributes?
@@ -132,9 +158,7 @@
                   sexp)
                  (t
                   ;; this needs to be evaluated separately
-                  (let ((sym (make-sym)))
-                    (push (list sym sexp) params)
-                    sym)))))
+                  (evaluate-separately sexp)))))
       (let ((inner (walk tree)))
 
         ;; At this point `inner` is comprised of just MAKE-XML-TAG,
@@ -202,7 +226,8 @@
                    :builder (lambda ()
                               ,body)
                    :standard-names ',standard-names
-                   :fast-writer (lambda (stream)
+                   :fast-writer (alexandria:named-lambda fast-writer (stream)
+                                  (declare (optimize (speed 3)))
                                   ,@(let ((stream (make-instance 'lambda-builder-stream)))
 
                                       (%write-html-to-stream

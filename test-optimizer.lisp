@@ -2,6 +2,7 @@
   (:use #:cl
         #:fiveam)
   (:import-from #:markup/markup
+                #:make-toplevel-node
                 #:make-xml-tag
                 #:optimize-markup)
   (:import-from #:markup/optimizer
@@ -77,6 +78,21 @@
 
 (test if-the-tag-is-not-builtin-then-we-move-it-to-register
   (with-fixture state ()
-    (is (equal '(let ((r1 (make-xml-tag 'foo :children nil :attributes nil  :unused nil)))
+    (is (equal '(let ((r1 (make-xml-tag 'foo :attributes nil :children nil  :unused nil)))
                  r1)
-               (optimize-markup '(make-xml-tag 'foo :children nil :attributes nil :unused nil))))))
+                (optimize-markup '(make-xml-tag 'foo :children nil :attributes nil :unused nil))))))
+
+(test get-topleveled-on-children
+  (with-fixture state ()
+    (is (equal '(let ((r1 (make-xml-tag 'foo
+                           :attributes nil
+                           :children (list
+                                      (make-toplevel-node
+                                       "foo"))
+                           :unused nil)))
+                 r1)
+                (optimize-markup
+                 '(make-xml-tag 'foo
+                   :children (list "foo")
+                   :attributes nil
+                   :unused nil))))))
