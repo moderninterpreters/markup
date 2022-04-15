@@ -395,7 +395,7 @@
            do (setf (aref ar (char-code char)) escaped))
      ar)))
 
-(defconstant +escape-map+
+(defparameter +escape-map+
   (make-escape-map '((#\& . "&amp;")
                    (#\< . "&lt;")
                    (#\> . "&gt;")
@@ -404,7 +404,7 @@
 
 
 ;; this mapping is taken from CL-WHO's escape-char-minimal
-(defconstant +escape-minimal-map+
+(defparameter +escape-minimal-map+
   (make-escape-map '((#\& . "&amp;")
                    (#\< . "&lt;")
                    (#\> . "&gt;"))))
