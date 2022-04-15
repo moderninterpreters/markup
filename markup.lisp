@@ -440,15 +440,18 @@
      (write-char #\= stream)
      (format-attr-val stream val)))
 
+(defmethod write-attribute-pair (name val stream)
+  (when val
+    (write-char #\Space stream)
+    (write-string name stream)
+    (write-attribute-value val stream)))
+
 (defun write-attributes (attributes stream)
   (declare (type (or null cons) attributes))
   (declare (optimize speed))
   (dolist (attr attributes)
     (declare (type cons attr))
-    (when (cdr attr)
-       (write-char #\Space stream)
-       (write-string (car attr) stream)
-       (write-attribute-value (cdr attr) stream))))
+    (write-attribute-pair (car attr) (cdr attr) stream)))
 
 (defparameter *void-tag-cache* (make-hash-table))
 

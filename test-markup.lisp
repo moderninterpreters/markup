@@ -350,3 +350,14 @@
    (is (equal
         "<foo car></foo>"
         (markup:write-html <:foo car/>)))))
+
+(defun compiled-expr (val)
+  <:option selected=val />)
+
+(test write-nil-attribute ()
+  (with-fixture state ()
+    (let ((val nil))
+      (is (equal "<option></option>"
+                 (markup:write-html (compiled-expr val))))
+      (is (equal "<option selected=\"car\"></option>"
+                 (markup:write-html (compiled-expr "car")))))))

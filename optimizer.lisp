@@ -8,7 +8,7 @@
                 #:abstract-xml-tag
                 #:xml-tag
                 #:xml-tag-attributes
-                #:write-attribute-value
+                #:write-attribute-pair
                 #:get-markup-fn
                 #:standard-name?
                 #:write-html-to-stream
@@ -189,7 +189,9 @@
 
 (define-condition render-register-attr (condition)
   ((register :initarg :register
-             :reader register)))
+             :reader register)
+   (name :initarg :name
+         :reader attr-name)))
 
 (defmethod %write-html-to-stream ((self xml-tag) (stream lambda-builder-stream))
   (let ((out (make-string-output-stream)))
@@ -205,7 +207,8 @@
                      (render-register-attr
                        (lambda (condition)
                          (flush)
-                         (push `(write-attribute-value ,(register condition) stream)
+                         (push `(when ,(register condition)
+                                  (write-attribute-pair ,(attr-name condition) ,(register condition) stream))
                                (body stream)))))
         (write-html-to-stream self out))
       (flush))))
@@ -217,8 +220,9 @@
 (defmethod write-html-to-stream ((self register-tag) stream)
   (signal 'render-register :register (register self)))
 
-(defmethod write-attribute-value ((self register-tag) stream)
-  (signal 'render-register-attr :register (register self)))
+(defmethod write-attribute-pair (name (self register-tag) stream)
+  (signal 'render-register-attr :register (register self)
+           :name name))
 
 (defmacro make-lazy-xml-tag (registers standard-names body)
   ;;(error "got registers: ~s" registers)
