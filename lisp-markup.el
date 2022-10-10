@@ -1,6 +1,5 @@
 ;;;; lisp-markup.el
 ;;;; Charles Jackson
-(require 'cl-lib)
 (require 'sgml-mode)
 (require 'lisp-mode)
 
@@ -40,7 +39,7 @@ which separates symbols.")
 provide highlighting to HTML code within lisp files.")
 
 (define-minor-mode lisp-markup-minor-mode
-  "Enhance `lisp-mode' with additional features to support embedded HTML through markup.
+  "Enhance `lisp-mode' with additional features to support embedded HTML markup.
 
 This changes syntax highlighting, indentation rules, and adds
 some extra keybindings to make editing of markup in lisp files
@@ -124,15 +123,16 @@ Returns a pair of beginning and end points, or NOT-FOUND."
     (catch 'return
       (let ((initial (point)))
         (while t
-          (let ((start (or (ignore-errors
-                             (funcall find-start)
-                             (point))
-                           (throw 'return not-found)))
-                (end (or (ignore-errors
-                           (funcall goto-end)
-                           (point))
-                         (throw 'return (cons start (point-max))))))
-            (when (<= start initial end)
+          (let* ((start (or (ignore-errors
+                              (funcall find-start)
+                              (point))
+                            (throw 'return not-found)))
+                 (end (or (ignore-errors
+                            (funcall goto-end)
+                            (point))
+                          (throw 'return (cons start (point-max))))))
+            (when (and (<= start initial)
+                       (< initial end))
               (throw 'return (cons start end)))
             ;; Reset for the next iteration
             (goto-char start)))))))
@@ -160,14 +160,16 @@ Returns a pair of beginning and end points."
 This function looks backwards in the buffer to find the start of
 the nearest HTML section, then looks forwards to find its end.
 
-Returns a pair of beginning and end points. If no start is found,
+Returns a pair of beginning and end points. If no end is found,
+returns a pair of start and `point-max'. If no start is found,
 returns nil."
   (lisp-markup-find-enclosing
    (lambda ()
      (search-backward-regexp "<[^/=[:space:]()]"))
    (lambda ()
      (lisp-markup-with-sgml-tag-table
-      (sgml-skip-tag-forward 1)))
+      (or (sgml-skip-tag-forward 1)
+          (error "No end tag found!"))))
    nil))
 
 ;;; Indentation
@@ -241,13 +243,12 @@ This function just calls `lisp-markup-indent-line' on every line
 of the region."
   (interactive "r")
   (save-excursion
-    (goto-char beg)
-    (let ((last-line (line-number-at-pos end)))
-      (cl-loop
-       do (lisp-markup-indent-line)
-       do (forward-line 1)
-       while (and (<= (line-number-at-pos (point)) last-line)
-                  (<= (line-number-at-pos (point)) (line-number-at-pos (- (point-max) 1))))))))
+    (let ((end (copy-marker end)))
+      (goto-char beg)
+      (while (< (point) end)
+        (beginning-of-line)
+        (lisp-markup-indent-line)
+        (forward-line 1)))))
 
 ;;; Automatic tag closing
 ;;; =====================
@@ -261,12 +262,32 @@ This method must be called with point before the opening < of a tag."
      (when (sgml-skip-tag-forward 1)
        (point)))))
 
+(defun lisp-markup-find-unclosed-tag-name ()
+  "This function only looks backwards to find unclosed tags, and
+thus a tag that is closed further forwards in the file will not
+be considered as being closed. Hence in an example like this:
+
+  <div>
+    <span></span>
+    |
+  </div>
+
+with point at |, \"div\" will be returned."
+  (let ((html (lisp-markup-enclosing-html-tag)))
+    (if html
+        (save-excursion
+          (goto-char (car html))
+          (buffer-substring-no-properties
+           (+ (point) 1)
+           (- (search-forward-regexp "[>/[:space:]]") 1)))
+      (error "No HTML tag found to close"))))
+
 (defun lisp-markup-html-close-tag ()
   "Insert a closing tag for the nearest tag before point that is unclosed.
 
 This function only looks backwards to find unclosed tags, and
 thus a tag that is closed further forwards in the file will not
-be considered. Hence in an example like this:
+be considered as being closed. Hence in an example like this:
 
   <div>
     <span></span>
@@ -275,29 +296,17 @@ be considered. Hence in an example like this:
 
 with point at |, a </div> will be inserted."
   (interactive)
-  (insert "</"
-          (save-excursion
-            (cl-loop with initial = (point)
-                     while (/= (point-max) (lisp-markup-html-start-point))
-                     for close = (lisp-markup-html-closed-p)
-                     if (or (not close)
-                            (<= initial close))
-                     return (buffer-substring-no-properties
-                             (+ (point) 1)
-                             (- (search-forward-regexp "[>/[:space:]]") 1))
-                     do (forward-char -1)))
-          ">"))
+  (insert "</" (lisp-markup-find-unclosed-tag-name) ">"))
 
 (defun lisp-markup-/-close-tag ()
   "Automatically insert a closing tag if this character was typed
 after a <. Otherwise, just insert a /."
   (interactive)
   (insert "/")
-  (when (= ?< (char-before (1- (point))))
-    (backward-delete-char 2)
-    (lisp-markup-html-close-tag)
-    (when (= ?> (or (char-after) 0))
-      (delete-char 1))
+  (when (looking-back "</")
+    (insert (lisp-markup-find-unclosed-tag-name))
+    (unless (looking-at ">")
+      (insert ">"))
     (lisp-markup-indent-line)))
 
 (provide 'lisp-markup)
