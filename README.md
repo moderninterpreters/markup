@@ -86,13 +86,15 @@ markup is available via quicklisp
 
 ## Editor support
 
-```lisp
+```emacs-lisp
 (use-package lisp-markup
-  :load-path "~/quicklisp/dists/quicklisp/software/markup-<version>-git/")
+  :load-path "~/quicklisp/dists/quicklisp/software/markup-<version>-git/"
+  :hook (lisp-mode . lisp-markup-minor-mode))
 
 ;; if you don't use use-package
 (add-to-list 'load-path "~/quicklisp/dists/quicklisp/software/markup-<version>-git/")
 (require 'lisp-markup)
+(add-hook 'lisp-mode-hook #'lisp-markup-minor-mode)
 ```
 
 ## FAQ
