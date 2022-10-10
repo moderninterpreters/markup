@@ -98,68 +98,77 @@ getting confused by Lisp code.."
 ;;; ===================
 
 (defun lisp-markup-in-html-p ()
-  "Is point currently in an HTML context?"
+  "Check if point is currently in an HTML context."
+  (let ((html (lisp-markup-enclosing-html-tag)))
+    (when html
+      (let ((lisp (lisp-markup-enclosing-lisp-section)))
+        (and (<= (car lisp) (car html))
+             (<= (cdr html) (cdr lisp)))))))
+
+(defun lisp-markup-find-enclosing (find-start goto-end not-found)
+  "Find the nearest enclosing \"section\" defined by FIND-START and GOTO-END.
+
+This function looks backwards in the buffer to find the start of
+the nearest section by calling FIND-START. This function defines
+what the start of a section is by moving point to be before the
+first character of a section. This will often involve a call to
+`search-backward-regexp' or similar. If FIND-START throws an
+error the search will end and NOT-FOUND will be returned.
+
+Once the start of a section has been found, GOTO-END will be
+called to move point to the end of this section. If GOTO-END
+throws an error, `point-max' will be used as the end value.
+
+Returns a pair of beginning and end points, or NOT-FOUND."
   (save-excursion
-    (cl-loop
-     with point = (point)
-     for start = (progn (goto-char (or start point))
-                        (when start (forward-char -1))
-                        (lisp-markup-html-start-point))
-     while (/= start (point-min))
-     for end = (lisp-markup-html-end-point)
-     if (<= start point end)
-     return
-     (progn
-       (not (cl-loop
-             for lisp-start = (progn (goto-char (or lisp-start point))
-                                     (when lisp-start (forward-char -1))
-                                     (lisp-markup-lisp-start-point))
-             while (/= lisp-start (point-min))
-             for lisp-end = (lisp-markup-lisp-end-point)
-             if (<= start lisp-start (+ point 1) lisp-end end)
-             return t))))))
+    (catch 'return
+      (let ((initial (point)))
+        (while t
+          (let ((start (or (ignore-errors
+                             (funcall find-start)
+                             (point))
+                           (throw 'return not-found)))
+                (end (or (ignore-errors
+                           (funcall goto-end)
+                           (point))
+                         (throw 'return (cons start (point-max))))))
+            (when (<= start initial end)
+              (throw 'return (cons start end)))
+            ;; Reset for the next iteration
+            (goto-char start)))))))
 
-(defun lisp-markup-lisp-start-point ()
-  "Move backwards through the buffer, looking for the start of a
-Lisp code section. If one is found, move point there and return
-point. If none is found, return the minimum point."
-  (condition-case nil
-      (search-backward-regexp ",(\\|,@\\|=(")
-    (t (point-min))))
+(defun lisp-markup-enclosing-lisp-section ()
+  "Find the nearest enclosing Lisp section.
 
-(defun lisp-markup-lisp-end-point ()
-  "Move to the closest Lisp end point, moving forwards from the
-current point. This function should only be called if point is at
-the beginning of a Lisp code section."
-  (condition-case nil
-      (progn (skip-chars-forward "=,@")
-             (forward-sexp)
-             (point))
-    (t (point-max))))
+This function looks backwards in the buffer to find the start of
+the nearest Lisp section, then looks forwards to find its end. If
+no start/end is found, returns the values of `point-min' and
+`point-max' as the beginning and end, respectively.
 
-(defun lisp-markup-html-start-point ()
-  "Move backwards through the buffer, looking for the start of a
-HTML code section. If one is found, move point there and return
-point. If none is found, return the minimum point."
-  (let ((html-start-re "<[^/=[:space:]()]"))
-    (condition-case nil
-        (if (looking-at-p html-start-re)
-            (point)
-          (let ((spot (cl-loop
-                       while (search-backward "<")
-                       if (looking-at-p html-start-re)
-                       return (point))))
-            (if spot spot (point-max))))
-      (t (point-min)))))
+Returns a pair of beginning and end points."
+  (lisp-markup-find-enclosing
+   (lambda ()
+     (search-backward-regexp ",(\\|,@\\|=("))
+   (lambda ()
+     (skip-chars-forward "=,@")
+     (forward-sexp))
+   (cons (point-min) (point-max))))
 
-(defun lisp-markup-html-end-point ()
-  "Move to the closest HTML end point, moving forwards from the
-current point. This function should only be called if point is at
-the beginning of a HTML code section."
-  (save-excursion
-    (lisp-markup-with-sgml-tag-table
-     (sgml-skip-tag-forward 1))
-    (point)))
+(defun lisp-markup-enclosing-html-tag ()
+  "Find the nearest enclosing HTML tag.
+
+This function looks backwards in the buffer to find the start of
+the nearest HTML section, then looks forwards to find its end.
+
+Returns a pair of beginning and end points. If no start is found,
+returns nil."
+  (lisp-markup-find-enclosing
+   (lambda ()
+     (search-backward-regexp "<[^/=[:space:]()]"))
+   (lambda ()
+     (lisp-markup-with-sgml-tag-table
+      (sgml-skip-tag-forward 1)))
+   nil))
 
 ;;; Indentation
 ;;; ===========
