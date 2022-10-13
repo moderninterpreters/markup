@@ -32,9 +32,7 @@ which separates symbols.")
     ("(\\(deftag\\)" 1 font-lock-keyword-face)
     ("(deftag \\([^ ]+\\) " 1 font-lock-function-name-face)
     ;; warning about single symbol lisp forms at the end of tags
-    ("=[^[:space:]<>]+[^\"/) ]\\(/\\|>\\)" 1 font-lock-warning-face)
-    ;; html comments
-    ("<!--.*-->" . font-lock-comment-face))
+    ("=[^[:space:]<>]+[^\"/) ]\\(/\\|>\\)" 1 font-lock-warning-face))
   "`font-lock' configuration for `lisp-markup-minor-mode' to
 provide highlighting to HTML code within lisp files.")
 
@@ -56,22 +54,49 @@ easier."
 
 (defun enter-lisp-markup-minor-mode ()
   "Perform the setup required by `lisp-markup-minor-mode'."
-  (set-syntax-table (make-syntax-table (syntax-table)))
-  (modify-syntax-entry ?' ".")
   (font-lock-add-keywords nil *lisp-markup-mode-keywords*)
   (font-lock-update)
   (setq-local indent-line-function #'lisp-markup-indent-line)
   (setq-local indent-region-function #'indent-region-line-by-line) ; Less efficient, but still correct
+  (setq-local syntax-propertize-function lisp-markup-syntax-propertize-function)
   (sgml-electric-tag-pair-mode 1))
 
 (defun exit-lisp-markup-minor-mode ()
   "Undo the setup performed by `enter-lisp-markup-minor-mode'."
-  (set-syntax-table lisp-mode-syntax-table)
   (font-lock-remove-keywords nil *lisp-markup-mode-keywords*)
   (font-lock-update)
   (setq-local indent-line-function #'lisp-indent-line)
   (setq-local indent-region-function #'lisp-indent-region)
+  (setq-local syntax-propertize-function nil)
   (sgml-electric-tag-pair-mode -1))
+
+(defvar lisp-markup-syntax-propertize-function
+  (syntax-propertize-rules
+   ("\\(<\\)!--" (1 "< b"))
+   ("--[ \t\n]*\\(>\\)" (1 "> b"))
+   ("\\(<\\)[?!]" (1 (prog1 "|>"
+                       (sgml-syntax-propertize-inside end)))))
+  "Function to apply syntax-propertize rules for mixed Lisp and HTML.
+
+This handles adding the required syntax properties to HTML
+comments embedded in Lisp code. This is mostly just stolen from
+sgml-mode.")
+
+(defun lisp-marker-infer-comment-settings ()
+  "Infer the right comment characters when in `lisp-markup-minor-mode'.
+
+This handles checking if we're in Lisp mode or HTML mode, and
+setting `comment-start' and `comment-end' appropriately."
+  (when lisp-markup-minor-mode
+    (cond
+     ((lisp-markup-in-html-p)
+      (setq-local comment-start "<!-- ")
+      (setq-local comment-end " -->"))
+     (:else
+      (setq-local comment-start ";")
+      (setq-local comment-end "")))))
+
+(advice-add 'comment-normalize-vars :before #'lisp-marker-infer-comment-settings)
 
 (defmacro lisp-markup-with-<>-as-brackets (&rest body)
   "Run BODY in a context where ?< and ?> behave as brackets, and ?(
@@ -235,6 +260,22 @@ returns nil."
               (indent (indent-line-to indent))))))))))
   (when (< (point) (save-excursion (back-to-indentation) (point)))
     (back-to-indentation)))
+
+;;; Comments
+;;; ========
+
+(defun lisp-markup-comment-region (beg end &optional arg)
+  "Comment region in the way you'd expect, depending on the context.
+
+This chooses how to comment the region from BEG to END based on
+where point is. Note that a single commenting style is selected
+for the entire region, which is not perfect. In practice this is
+still useful, though."
+  (if (lisp-markup-in-html-p)
+      (let ((comment-start "<!-- ")
+            (comment-end " -->"))
+        (comment-region-default beg end arg))
+    (comment-region-default beg end arg)))
 
 
 ;;; Automatic tag closing
