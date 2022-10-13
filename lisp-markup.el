@@ -58,6 +58,7 @@ easier."
   (font-lock-update)
   (setq-local indent-line-function #'lisp-markup-indent-line)
   (setq-local indent-region-function #'indent-region-line-by-line) ; Less efficient, but still correct
+  (setq-local forward-sexp-function #'lisp-markup-forward-sexp)
   (setq-local syntax-propertize-function lisp-markup-syntax-propertize-function)
   (sgml-electric-tag-pair-mode 1))
 
@@ -67,6 +68,7 @@ easier."
   (font-lock-update)
   (setq-local indent-line-function #'lisp-indent-line)
   (setq-local indent-region-function #'lisp-indent-region)
+  (setq-local forward-sexp-function nil)
   (setq-local syntax-propertize-function nil)
   (sgml-electric-tag-pair-mode -1))
 
@@ -277,6 +279,29 @@ still useful, though."
         (comment-region-default beg end arg))
     (comment-region-default beg end arg)))
 
+;;; Forward/backward by sexp
+;;; ========================
+
+(defun lisp-markup-forward-sexp (&optional n interactive)
+  "Move over the next \"sexp\" in the buffer, which includes an entire HTML tag.
+
+This mostly tries to guess if the next thing is HTML or Lisp by
+looking at the beginning of it. It's not foolproof, but it's
+still pretty useful."
+  (let ((n (or n 1)))
+    (cond
+     ((< 0 n)
+      (if (looking-at-p "[[:space:]\n]*<[^/=\"![:space:]()]")
+	  (lisp-markup-with-sgml-tag-table
+           (sgml-skip-tag-forward n))
+        (let ((forward-sexp-function nil))
+          (forward-sexp n interactive))))
+     ((< n 0)
+      (if (looking-back "[^[:space:]'()]>[[:space:]\n]*")
+	  (lisp-markup-with-sgml-tag-table
+           (sgml-skip-tag-backward (- n)))
+        (let ((forward-sexp-function nil))
+          (forward-sexp n interactive)))))))
 
 ;;; Automatic tag closing
 ;;; =====================
