@@ -217,7 +217,7 @@ returns nil."
                           (lisp-markup-in-html-p))))
          (cond
           ;; closing tag
-          ((looking-at "</")
+          ((looking-at-p "</")
            (let* ((indent
                    (save-excursion
                      (forward-sexp 1)
@@ -244,7 +244,7 @@ returns nil."
                 (save-excursion
                   (forward-line -1)
                   (back-to-indentation)
-                  (looking-at "</")))
+                  (looking-at-p "</")))
            (indent-line-to
             (save-excursion
               (forward-line -1)
@@ -297,7 +297,11 @@ still pretty useful."
         (let ((forward-sexp-function nil))
           (forward-sexp n interactive))))
      ((< n 0)
-      (if (looking-back "[^[:space:]'()]>[[:space:]\n]*")
+      (if (save-excursion (let ((whitespace-chars (string-to-list " \t\r\n")))
+                            (while (member (char-before) whitespace-chars)
+                              (backward-char)))
+                          (backward-char 2)
+                          (looking-at-p "[^[:space:]'()]>"))
 	  (lisp-markup-with-sgml-tag-table
            (sgml-skip-tag-backward (- n)))
         (let ((forward-sexp-function nil))
@@ -356,9 +360,10 @@ with point at |, a </div> will be inserted."
 after a <. Otherwise, just insert a /."
   (interactive)
   (insert "/")
-  (when (looking-back "</")
+  (when (save-excursion (backward-char 2)
+                        (looking-at-p "</"))
     (insert (lisp-markup-find-unclosed-tag-name))
-    (unless (looking-at ">")
+    (unless (looking-at-p ">")
       (insert ">"))
     (lisp-markup-indent-line)))
 
