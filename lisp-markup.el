@@ -61,7 +61,7 @@ easier."
   (font-lock-add-keywords nil *lisp-markup-mode-keywords*)
   (font-lock-update)
   (setq-local indent-line-function #'lisp-markup-indent-line)
-  (setq-local indent-region-function #'lisp-markup-indent-region)
+  (setq-local indent-region-function #'indent-region-line-by-line) ; Less efficient, but still correct
   (sgml-electric-tag-pair-mode 1))
 
 (defun exit-lisp-markup-minor-mode ()
@@ -236,19 +236,6 @@ returns nil."
   (when (< (point) (save-excursion (back-to-indentation) (point)))
     (back-to-indentation)))
 
-(defun lisp-markup-indent-region (beg end)
-  "Indent the region of Lisp and HTML between BEG and END.
-
-This function just calls `lisp-markup-indent-line' on every line
-of the region."
-  (interactive "r")
-  (save-excursion
-    (let ((end (copy-marker end)))
-      (goto-char beg)
-      (while (< (point) end)
-        (beginning-of-line)
-        (lisp-markup-indent-line)
-        (forward-line 1)))))
 
 ;;; Automatic tag closing
 ;;; =====================
