@@ -152,6 +152,8 @@ Returns a pair of beginning and end points, or NOT-FOUND."
         (while t
           (let* ((start (or (ignore-errors
                               (funcall find-start)
+                              (while (nth 4 (syntax-ppss)) ; is in a comment
+                                (funcall find-start))      ; so keep looking
                               (point))
                             (throw 'return not-found)))
                  (end (or (ignore-errors
