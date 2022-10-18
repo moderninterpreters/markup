@@ -56,20 +56,22 @@ easier."
   "Perform the setup required by `lisp-markup-minor-mode'."
   (font-lock-add-keywords nil *lisp-markup-mode-keywords*)
   (font-lock-update)
-  (setq-local indent-line-function #'lisp-markup-indent-line)
-  (setq-local indent-region-function #'indent-region-line-by-line) ; Less efficient, but still correct
-  (setq-local forward-sexp-function #'lisp-markup-forward-sexp)
-  (setq-local syntax-propertize-function lisp-markup-syntax-propertize-function)
+  (setq-local indent-line-function #'lisp-markup-indent-line
+              indent-region-function #'indent-region-line-by-line ; Less efficient, but still correct
+              forward-sexp-function #'lisp-markup-forward-sexp
+              comment-region-function #'lisp-markup-comment-region
+              syntax-propertize-function lisp-markup-syntax-propertize-function)
   (sgml-electric-tag-pair-mode 1))
 
 (defun exit-lisp-markup-minor-mode ()
   "Undo the setup performed by `enter-lisp-markup-minor-mode'."
   (font-lock-remove-keywords nil *lisp-markup-mode-keywords*)
   (font-lock-update)
-  (setq-local indent-line-function #'lisp-indent-line)
-  (setq-local indent-region-function #'lisp-indent-region)
-  (setq-local forward-sexp-function nil)
-  (setq-local syntax-propertize-function nil)
+  (setq-local indent-line-function #'lisp-indent-line
+              indent-region-function #'lisp-indent-region
+              forward-sexp-function nil
+              comment-region-function #'comment-region-default
+              syntax-propertize-function nil)
   (sgml-electric-tag-pair-mode -1))
 
 (defvar lisp-markup-syntax-propertize-function
@@ -89,14 +91,12 @@ sgml-mode.")
 
 This handles checking if we're in Lisp mode or HTML mode, and
 setting `comment-start' and `comment-end' appropriately."
-  (when lisp-markup-minor-mode
-    (cond
-     ((lisp-markup-in-html-p)
-      (setq-local comment-start "<!-- ")
-      (setq-local comment-end " -->"))
-     (:else
-      (setq-local comment-start ";")
-      (setq-local comment-end "")))))
+  (when lisp-markup-minor-mode ; Having this lets us use this as global advice on `comment-normalize-vars'
+    (if (lisp-markup-in-html-p)
+        (setq-local comment-start "<!-- "
+                    comment-end " -->")
+      (setq-local comment-start ";"
+                  comment-end ""))))
 
 (advice-add 'comment-normalize-vars :before #'lisp-marker-infer-comment-settings)
 
@@ -269,17 +269,11 @@ returns nil."
 ;;; ========
 
 (defun lisp-markup-comment-region (beg end &optional arg)
-  "Comment region in the way you'd expect, depending on the context.
-
-This chooses how to comment the region from BEG to END based on
-where point is. Note that a single commenting style is selected
-for the entire region, which is not perfect. In practice this is
-still useful, though."
-  (if (lisp-markup-in-html-p)
-      (let ((comment-start "<!-- ")
-            (comment-end " -->"))
-        (comment-region-default beg end arg))
-    (comment-region-default beg end arg)))
+  "Comment region in the way you'd expect, depending on the context of BEG."
+  (save-excursion
+    (goto-char beg)
+    (lisp-marker-infer-comment-settings))
+  (comment-region-default beg end arg))
 
 ;;; Forward/backward by sexp
 ;;; ========================
