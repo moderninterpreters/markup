@@ -194,7 +194,7 @@ returns a pair of start and `point-max'. If no start is found,
 returns nil."
   (lisp-markup-find-enclosing
    (lambda ()
-     (search-backward-regexp "<[^/=[:space:]()]"))
+     (search-backward-regexp "<[^/=![:space:]()]"))
    (lambda ()
      (lisp-markup-with-sgml-tag-table
       (or (sgml-skip-tag-forward 1)
