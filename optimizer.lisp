@@ -80,6 +80,9 @@
 (defmethod xml-tag-children ((Tag abstract-xml-tag))
   (xml-tag-children (delegate tag)))
 
+(defmethod (setf xml-tag-children) (value (tag abstract-xml-tag))
+  (setf (xml-tag-children (delegate tag)) value))
+
 (defmethod optimize-markup ((tree t))
   tree)
 
