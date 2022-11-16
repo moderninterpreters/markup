@@ -7,7 +7,7 @@ jobs:
       - checkout
       - run:
           name: Install SBCL
-          command: sudo apt-get update && sudo apt-get install -y sbcl
+          command: sudo apt-get update && sudo apt-get install -y sbcl imagemagick libmagickwand-dev
       - run:
           name: Install quicklisp
           command: |
