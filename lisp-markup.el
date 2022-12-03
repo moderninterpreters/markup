@@ -363,5 +363,17 @@ after a <. Otherwise, just insert a /."
       (insert ">"))
     (lisp-markup-indent-line)))
 
+(defun lisp-markup--lisp-mode-hook ()
+  "Detect if this Lisp file looks like a markup file, if so enable
+ the minor mode."
+  (save-excursion
+    (goto-char (point-min))
+    (when (re-search-forward
+           "^(\\(markup:enable-reader\\|named-readtables:in-readtable.*markup:syntax\\))"
+           nil t)
+      (lisp-markup-minor-mode))))
+
+(add-hook 'lisp-mode-hook #'lisp-markup--lisp-mode-hook)
+
 (provide 'lisp-markup)
 ;;; lisp-markup.el ends here
