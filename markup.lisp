@@ -39,7 +39,8 @@
            #:empty-attribute
            #:+empty+
            #:optimize-markup
-           #:abstract-xml-tag))
+           #:abstract-xml-tag
+           #:xml-tag-p))
 (in-package #:markup/markup)
 
 (defmacro enable-reader ()
@@ -323,6 +324,9 @@
 
 (defclass abstract-xml-tag ()
   ())
+
+(defun xml-tag-p (self)
+  (typep self 'abstract-xml-tag))
 
 (defclass xml-tag (abstract-xml-tag)
   ((attributes :initform nil
