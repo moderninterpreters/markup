@@ -52,10 +52,14 @@ easier."
       (setf lisp-markup-minor-mode nil)
       (error "lisp-markup-minor-mode only supports running in lisp-mode"))))
 
+(defun lisp-markup--font-lock-update ()
+  (unless (version< emacs-version "28.1")
+    (font-lock-update)))
+
 (defun enter-lisp-markup-minor-mode ()
   "Perform the setup required by `lisp-markup-minor-mode'."
   (font-lock-add-keywords nil *lisp-markup-mode-keywords*)
-  (font-lock-update)
+  (lisp-markup--font-lock-update)
   (setq-local indent-line-function #'lisp-markup-indent-line
               indent-region-function #'indent-region-line-by-line ; Less efficient, but still correct
               forward-sexp-function #'lisp-markup-forward-sexp
@@ -66,7 +70,7 @@ easier."
 (defun exit-lisp-markup-minor-mode ()
   "Undo the setup performed by `enter-lisp-markup-minor-mode'."
   (font-lock-remove-keywords nil *lisp-markup-mode-keywords*)
-  (font-lock-update)
+  (lisp-markup--font-lock-update)
   (setq-local indent-line-function #'lisp-indent-line
               indent-region-function #'lisp-indent-region
               forward-sexp-function nil
