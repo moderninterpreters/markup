@@ -161,7 +161,7 @@
            (markup:write-html <div arg="blah"></div>)
            (markup:write-html <div arg=(progn val)></div>))))))
 
-(test escaping-attr-vals
+(test escaping-attr-vals-2
   (with-fixture state ()
     (let ((val "blah"))
       (is (equal
@@ -172,7 +172,7 @@
   (declare (ignore children))
   <:h1>Foo was ,(progn foo)</:h1>)
 
-(test function-calls
+(test function-calls-3
   (with-fixture state ()
     (is (equal
          (markup:write-html <:h1>Foo was blah</:h1>)
@@ -262,7 +262,7 @@
     (is (equal nil (< 2 1)))
     (is (equal t (<= 1 2)))))
 
-(test escaping
+(test escaping-1
   (with-fixture state ()
     (let ((body "<body>"))
       (is (equal
