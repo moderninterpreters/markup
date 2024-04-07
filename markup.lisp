@@ -345,6 +345,12 @@
 (defstruct xml-merge-tag
   (children nil :type (or null cons)))
 
+(defmethod xml-tag-children ((self xml-merge-tag))
+  (xml-merge-tag-children self))
+
+(defmethod (setf xml-tag-children) (value (self xml-merge-tag))
+  (setf (xml-merge-tag-children self) value))
+
 (defun make-merge-tag (children)
   (make-xml-merge-tag :children children))
 
