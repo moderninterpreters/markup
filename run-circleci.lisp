@@ -2,7 +2,7 @@
 
 (push #P "./" asdf:*central-registry*)
 
-(ql:quickload :markup.test)
+(ql:quickload :markup/tests)
 
 (unless (fiveam:run-all-tests)
   (uiop:quit 1))
