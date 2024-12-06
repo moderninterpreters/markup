@@ -177,6 +177,9 @@
               (read-next-char)))
        'string))))
 
+(defun make-list-merge-tag (list)
+  (make-merge-tag (mapcar #'make-escaped list)))
+
 (defun read-xml-after-bracket (stream char)
   (declare (ignore char))
   (flet ((peek-next-char () (peek-char nil stream t nil t))
@@ -224,7 +227,7 @@
                   (cond
                     ((eql #\@ (peek-next-char))
                      (read-next-char)
-                     (push (list 'make-merge-tag (read-preserving-whitespace stream)) children))
+                     (push (list 'make-list-merge-tag (read-preserving-whitespace stream)) children))
                     ((eql #\( (peek-next-char))
                      (push `(make-escaped ,(read-preserving-whitespace stream)) children ))
                     (t
@@ -611,6 +614,10 @@ set children as (\"x\" <h1>y</h1>).
 (defun make-escaped (child)
   (typecase child
     (abstract-xml-tag
+     child)
+    (xml-merge-tag
+     child)
+    (escaped-string
      child)
     (t (make-instance 'escaped-string
                     :content child))))

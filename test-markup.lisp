@@ -14,7 +14,7 @@
                 #:*disable-optimizer*))
 (in-package #:test-markup)
 
-(markup:enable-reader)
+(named-readtables:in-readtable markup:syntax)
 
 (def-suite* :markup)
 (def-suite* :markup.test-markup :in :markup)
@@ -361,3 +361,36 @@
                  (markup:write-html (compiled-expr val))))
       (is (equal "<option selected=\"car\"></option>"
                  (markup:write-html (compiled-expr "car")))))))
+
+(test |escaping-inside-,@|
+  (let ((val "<script>alert(1)</script>"))
+    (is
+     (equal
+      "<a>&lt;script&gt;alert(1)&lt;/script&gt;</a>"
+      (markup:write-html
+       <a>,(progn val)</a>)))
+    (is
+     (equal
+      "<a>&lt;script&gt;alert(1)&lt;/script&gt;</a>"
+      (markup:write-html
+       <a>,@(list val)</a>)))
+    (is
+     (equal
+      "<a>&lt;script&gt;alert(1)&lt;/script&gt;<b>hello</b></a>"
+      (markup:write-html
+       <a>,@(list val <b>hello</b>)</a>)))
+    (is
+     (equal
+      "<a><b>hello world</b></a>"
+      (markup:write-html
+       <a>,@(list <b>hello ,@ (list "world")</b>)</a>)))))
+
+(markup:deftag xyz1 (children)
+  <a>,@(progn children)</a>)
+
+(test a-weird-complex-interaction-of-escapes
+  (let ((var "foobar"))
+    (is
+     (equal "<a>foobar</a>"
+            (markup:write-html
+             <xyz1>,(progn var)</xyz1>)))))
