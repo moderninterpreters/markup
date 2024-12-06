@@ -619,6 +619,8 @@ set children as (\"x\" <h1>y</h1>).
      child)
     (escaped-string
      child)
+    (unescaped-string
+     child)
     (t (make-instance 'escaped-string
                     :content child))))
 

@@ -394,3 +394,14 @@
      (equal "<a>foobar</a>"
             (markup:write-html
              <xyz1>,(progn var)</xyz1>)))))
+
+(test unescaped-remains-unescaped-interaction-of-escapes
+  (let ((var "<h1></h1>"))
+    (is
+     (equal "<a><h1></h1></a>"
+            (markup:write-html
+             <a>,(markup:unescaped var)</a>)))
+    (is
+     (equal "<a><h1></h1></a>"
+            (markup:write-html
+             <xyz1>,(markup:unescaped var)</xyz1>)))))
