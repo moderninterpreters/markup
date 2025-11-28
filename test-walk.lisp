@@ -5,7 +5,7 @@
           #:fiveam))
 (in-package #:markup/test-walk)
 
-(markup:enable-reader)
+(named-readtables:in-readtable markup:syntax)
 
 (def-suite* :markup.test-walk)
 
