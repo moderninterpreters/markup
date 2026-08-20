@@ -28,7 +28,11 @@
                 #:enclosing-element
                 #:enclosing-lisp-section
                 #:in-html-p
-                #:enclosing-tag-name))
+                #:enclosing-tag-name
+                #:markup-indent-column
+                #:column-of
+                #:line-content-offset
+                #:closes-tag-p))
 (in-package #:markup/test-lispworks)
 
 (def-suite* :markup.test-lispworks)
@@ -356,10 +360,12 @@ both report as :TAG."
   (is (null (element-name "(defun foo (|))")))
   (is (null (element-name "<div></div>|"))))
 
-(test the-very-start-of-a-tag-counts-as-being-inside-it
-  ;; Matches the Emacs mode, whose containment test is
-  ;; (and (<= start point) (< point end)).
-  (is (equal "div" (element-name "|<div></div>"))))
+(test a-position-on-a-tags-own-bracket-is-outside-that-tag
+  ;; Containment is strict, unlike the Emacs mode's (<= start point). This
+  ;; is what lets the indenter ask "what encloses this line?" using the
+  ;; position of the line's first character.
+  (is (null (element-name "|<div></div>")))
+  (is (equal "p" (element-name "<p>|<div></div></p>"))))
 
 (test a-void-element-does-not-enclose-what-follows-it
   (is (equal "div" (element-name "<div><br>|</div>"))))
@@ -440,3 +446,94 @@ both report as :TAG."
 (test void-and-self-closing-elements-count-as-closed
   (is-true (tag-closed-p "<br |>"))
   (is-true (tag-closed-p "<br |/>")))
+
+
+;;; ==========================================================================
+;;; Indentation
+;;; ==========================================================================
+
+(defun split-lines (text)
+  (with-input-from-string (in text)
+    (loop for line = (read-line in nil) while line collect line)))
+
+(defun join-lines (lines)
+  (format nil "~{~a~%~}" (coerce lines 'list)))
+
+(defun reindent (text &optional (step 2))
+  "Strip every line's indentation and re-indent it with the mode's rule,
+the way running Indent Region over the whole form would."
+  (let ((lines (map 'vector
+                    (lambda (line) (string-left-trim '(#\Space #\Tab) line))
+                    (split-lines text))))
+    (dotimes (i (length lines) (join-lines lines))
+      (let* ((joined (join-lines lines))
+             (bol (loop for k from 0 below i sum (1+ (length (aref lines k)))))
+             (column (markup-indent-column joined bol step)))
+        (when column
+          (setf (aref lines i)
+                (concatenate 'string
+                             (make-string column :initial-element #\Space)
+                             (aref lines i))))))))
+
+;;; The helpers
+
+(test column-of-counts-from-the-start-of-the-line
+  (is (= 0 (column-of "abc" 0)))
+  (is (= 2 (column-of "abc" 2)))
+  (is (= 0 (column-of (format nil "ab~%cd") 3)))
+  (is (= 2 (column-of (format nil "ab~%  cd") 5))))
+
+(test line-content-offset-skips-blanks
+  (is (= 0 (line-content-offset "abc" 0)))
+  (is (= 2 (line-content-offset "  abc" 0)))
+  ;; a blank line yields the position of its newline
+  (is (= 2 (line-content-offset (format nil "  ~%x") 0)))
+  (is (= 3 (line-content-offset (format nil "  ~%x") 3))))
+
+(test closes-tag-p-matches-only-the-right-closing-tag
+  (is-true (closes-tag-p "</div>" 0 "div"))
+  (is-true (closes-tag-p "</DIV>" 0 "div"))
+  (is-false (closes-tag-p "</span>" 0 "div"))
+  (is-false (closes-tag-p "<div>" 0 "div"))
+  (is-false (closes-tag-p "hello" 0 "div")))
+
+;;; The rule
+
+(test lisp-lines-are-left-to-the-lisp-indenter
+  (is (null (markup-indent-column "(defun foo ()" 0)))
+  (is (null (markup-indent-column (format nil "(defun foo ()~%(list 1)") 14))))
+
+(test nested-elements-step-in-one-level
+  ;; REINDENT exercises the markup rule alone, so Lisp lines such as a
+  ;; leading (defun ...) come back untouched; in the editor those go to
+  ;; LispWorks' own indenter instead.
+  (is (string= (format nil "<div>~%  <p>hi</p>~%</div>~%")
+               (reindent (format nil "<div>~%<p>hi</p>~%</div>~%")))))
+
+(test a-closing-tag-lines-up-with-its-opening-tag
+  (is (string= (format nil "<div>~%  <span>~%    x~%  </span>~%</div>~%")
+               (reindent (format nil "<div>~%<span>~%x~%</span>~%</div>~%")))))
+
+(test the-step-is-configurable
+  (is (string= (format nil "<div>~%    <p>hi</p>~%</div>~%")
+               (reindent (format nil "<div>~%<p>hi</p>~%</div>~%") 4))))
+
+(test void-and-self-closing-elements-do-not-indent-what-follows
+  (is (string= (format nil "<div>~%  <br />~%  <img src=\"x\">~%  <p>hi</p>~%</div>~%")
+               (reindent (format nil "<div>~%<br />~%<img src=\"x\">~%<p>hi</p>~%</div>~%")))))
+
+(test text-content-indents-like-an-element
+  (is (string= (format nil "<p>~%  hello world~%</p>~%")
+               (reindent (format nil "<p>~%hello world~%</p>~%")))))
+
+(test a-lisp-escape-indents-as-html-but-its-body-does-not
+  ;; The ,( line is HTML content of the <div>, so it steps in. The forms
+  ;; inside it are Lisp, so markup-indent-column declines and LispWorks'
+  ;; own indenter handles them -- which is why they come back unchanged.
+  (let ((result (reindent (format nil "<div>~%,(progn~%(foo))~%<p>x</p>~%</div>~%"))))
+    (is (string= (format nil "<div>~%  ,(progn~%(foo))~%  <p>x</p>~%</div>~%")
+                 result))))
+
+(test continuation-lines-align-under-the-first-attribute
+  (is (string= (format nil "<div>~%  <a href=\"x\"~%     id=\"y\">~%    hi~%  </a>~%</div>~%")
+               (reindent (format nil "<div>~%<a href=\"x\"~%     id=\"y\">~%hi~%</a>~%</div>~%")))))

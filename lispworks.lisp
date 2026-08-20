@@ -337,7 +337,10 @@ the token after it. Returns NIL when the element is never closed."
 
 (defun enclosing-element (tokens pos len)
   "Return (values START END NAME CLOSEDP) for the innermost element of
-TOKENS that spans POS, or NIL. CLOSEDP is true when the element has a
+TOKENS that spans POS, or NIL. The element must begin strictly before
+POS, so a position sitting on a tag's own < is outside that tag and
+inside whatever contains it -- which is what the indenter needs when a
+line begins with a tag. CLOSEDP is true when the element has a
 closing tag of its own -- or needs none, being void or self-closing -- and
 false when it is still open at POS. An element that is never closed is
 taken to run to the end of the text, which is what lets the auto-close
@@ -350,7 +353,7 @@ command work while the tag is still being typed."
              ;; auto-close command still works when the tag being typed is
              ;; the last thing in the form.
              (let ((start (tag-start open)))
-               (when (and (<= start pos)
+               (when (and (< start pos)
                           (if at-end-of-text (<= pos end) (< pos end))
                           (or (null best) (> start (first best))))
                  (setf best (list start end (tag-name open) closedp))))))
@@ -405,7 +408,7 @@ mirrors the Emacs mode's use of point-min and point-max."
           ((or (and (char= ch #\,) (or (char= next #\() (char= next #\@)))
                (and (char= ch #\=) (char= next #\()))
            (multiple-value-bind (start end) (lisp-escape-extent text i len)
-             (when (and (<= start pos) (< pos end)
+             (when (and (< start pos) (< pos end)
                         (or (null best) (> start (first best))))
                (setf best (list start end))))
            (incf i))
@@ -431,6 +434,7 @@ element is already closed. NIL when there is no enclosing element."
   (multiple-value-bind (start end name closedp) (enclosing-element tokens pos len)
     (declare (ignore start end))
     (values name closedp)))
+
 
 ;;; From buffer to text
 ;;; ===================
@@ -463,6 +467,106 @@ POINT within it."
   (multiple-value-bind (start end) (enclosing-form-region point)
     (values (editor:points-to-string start end)
             (editor::count-characters start point))))
+
+;;; Indentation
+;;; ===========
+;;;
+;;; The Emacs mode decides between Lisp and HTML indentation by looking at
+;;; the end of the previous line, and then needs five special cases. Since
+;;; containment here is strict -- an element must begin before the position
+;;; to contain it -- the position at the start of a line already describes
+;;; the context the line sits in, and one rule covers everything:
+;;;
+;;;   a line that closes its parent lines up with that parent;
+;;;   any other HTML line sits one step in from its parent;
+;;;   anything in Lisp is left to LispWorks' own Lisp indenter.
+
+(defparameter *default-indent-offset* 2
+  "Columns per level of HTML nesting, when the editor variable is unset.")
+
+(defun column-of (text pos)
+  "The column POS sits at, counting characters from the start of its line."
+  (let ((bol (position #\Newline text :end pos :from-end t)))
+    (if bol (- pos bol 1) pos)))
+
+(defun line-content-offset (text bol)
+  "The offset of the first non-blank character of the line starting at BOL,
+or the end of the line when it is blank."
+  (let ((len (length text))
+        (pos bol))
+    (loop while (and (< pos len) (member (char text pos) '(#\Space #\Tab)))
+          do (incf pos))
+    pos))
+
+(defun closes-tag-p (text pos name)
+  "True when a closing tag for NAME begins at POS."
+  (and (< pos (length text))
+       (char= (char text pos) #\<)
+       (let ((tag (tag-at text pos (length text))))
+         (and tag
+              (eq (tag-kind tag) :close)
+              (string-equal name (tag-name tag))))))
+
+(defun tag-containing (tokens pos)
+  "The tag whose own <...> POS falls strictly inside, or NIL. A position
+here is on a continuation line of a tag whose attributes span lines."
+  (loop for tok across tokens
+        when (and (member (tag-kind tok) '(:open :close :self))
+                  (< (tag-start tok) pos)
+                  (< pos (tag-end tok)))
+          do (return tok)))
+
+(defun tag-attribute-column (text tag)
+  "The column of TAG's first attribute, so that attributes continuing on
+later lines line up under it rather than merely stepping in."
+  (let ((pos (tag-attrs-start tag))
+        (len (length text)))
+    (loop while (and (< pos len) (member (char text pos) '(#\Space #\Tab)))
+          do (incf pos))
+    (column-of text pos)))
+
+(defun markup-indent-column (text pos &optional (step *default-indent-offset*))
+  "The column the line whose content begins at POS should be indented to,
+or NIL when the line is Lisp and should be left to the Lisp indenter."
+  (let* ((len (length text))
+         (tokens (tokenize text)))
+    (when (in-html-p text pos tokens len)
+      (let ((tag (tag-containing tokens pos)))
+        (if tag
+            (tag-attribute-column text tag)
+            (multiple-value-bind (start end name) (enclosing-element tokens pos len)
+              (declare (ignore end))
+              (when start
+                (let ((parent-column (column-of text start)))
+                  (if (closes-tag-p text pos name)
+                      parent-column
+                      (+ parent-column step))))))))))
+
+(defun indent-offset (buffer)
+  (or (editor:variable-value-if-bound 'markup-indent-offset :buffer buffer)
+      *default-indent-offset*))
+
+(defun markup-indent-line (point)
+  "The Markup mode's Indent-Function."
+  (let ((buffer (editor:point-buffer point)))
+    (editor:with-point ((bol point :before-insert))
+      (editor:line-start bol)
+      (multiple-value-bind (text bol-offset) (text-around bol)
+        (let ((column (markup-indent-column text
+                                            (line-content-offset text bol-offset)
+                                            (indent-offset buffer))))
+          (if column
+              ;; This is what region-indent-using-tabs does per line, minus
+              ;; its undo wrapper: recording-for-undo-locking is a
+              ;; compile-time-only macro inside the editor build and is not
+              ;; available at runtime.
+              (editor::insert-space-at-start bol column nil)
+              (editor::indent-for-lisp point)))))))
+
+;;; deftag defines a function, so it should indent like defun rather than
+;;; like a call. Without this the body of a deftag lines up under the tag
+;;; name, which is a long way to the right.
+(editor::setup-indent "deftag" 2 2 7)
 
 ;;; Painting
 ;;; ========
@@ -512,8 +616,14 @@ lambda-list markers and def-forms still get their usual faces."
 ;;; ========
 
 (editor:defmode "Markup"
-                :vars `((editor::font-lock-fontify-keywords-region-function
-                         . fontify-keywords-region)))
+                :vars '((editor::font-lock-fontify-keywords-region-function
+                         . fontify-keywords-region)
+                        (editor::indent-function . markup-indent-line)
+                        ;; Line by line, like the Emacs mode: less efficient
+                        ;; than a bespoke region indenter, but correct.
+                        (editor::indent-region-function
+                         . editor::region-indent-using-tabs)
+                        (markup-indent-offset . 2)))
 
 (defun refontify (buffer)
   (when (editor::buffer-font-lock-mode-p buffer)
