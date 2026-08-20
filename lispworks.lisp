@@ -11,6 +11,8 @@
 
 (defpackage :markup/lispworks
   (:use #:cl)
+  (:import-from #:markup/tags
+                #:*void-tags*)
   (:export #:enable))
 
 (in-package :markup/lispworks)
@@ -172,6 +174,11 @@ START is the offset of the #\< and END the offset just past the #\>."
   end
   attrs-start)
 
+(defun void-tag-name-p (name)
+  "True for the HTML elements that markup's reader closes implicitly, so
+that the editor agrees with MARKUP::VOID-TAG?."
+  (and name (member name *void-tags* :test #'string-equal)))
+
 (defun scan-to-tag-end (text i len)
   "I is the offset just past a tag name. Returns the offset just past the
 closing > and a second value that is true when the tag closed with />.
@@ -296,6 +303,167 @@ top level, so this also covers nested ones."
     (setf acc (scan-deftags text len acc))
     (stable-sort (nreverse acc) #'< :key #'first)))
 
+;;; Navigating elements
+;;; ===================
+;;;
+;;; These are the counterparts of sgml-skip-tag-forward and friends, which
+;;; the Emacs mode gets from sgml-mode. They all work on the token vector
+;;; rather than on buffer points, which keeps them pure and testable.
+
+(defun skip-element-forward (tokens index)
+  "TOKENS[INDEX] opens an element. Return the offset just past the end of
+that element -- past its closing tag when it has one -- and the index of
+the token after it. Returns NIL when the element is never closed."
+  (let* ((open (aref tokens index))
+         (name (tag-name open)))
+    (case (tag-kind open)
+      ((:self :comment :decl) (values (tag-end open) (1+ index)))
+      (:close nil)
+      (t
+       (if (void-tag-name-p name)
+           (values (tag-end open) (1+ index))
+           (let ((depth 1))
+             (loop for i from (1+ index) below (length tokens)
+                   for tok = (aref tokens i)
+                   do (case (tag-kind tok)
+                        (:open (when (and (string-equal name (tag-name tok))
+                                          (not (void-tag-name-p (tag-name tok))))
+                                 (incf depth)))
+                        (:close (when (string-equal name (tag-name tok))
+                                  (when (zerop (decf depth))
+                                    (return (values (tag-end tok) (1+ i)))))))
+                   finally (return (values nil nil))))))
+      )))
+
+(defun enclosing-element (tokens pos len)
+  "Return (values START END NAME CLOSEDP) for the innermost element of
+TOKENS that spans POS, or NIL. CLOSEDP is true when the element has a
+closing tag of its own -- or needs none, being void or self-closing -- and
+false when it is still open at POS. An element that is never closed is
+taken to run to the end of the text, which is what lets the auto-close
+command work while the tag is still being typed."
+  (let ((stack '())
+        (best nil))
+    (flet ((consider (open end closedp &optional at-end-of-text)
+             ;; A properly closed element does not enclose the position
+             ;; just past it. One that is never closed does, so that the
+             ;; auto-close command still works when the tag being typed is
+             ;; the last thing in the form.
+             (let ((start (tag-start open)))
+               (when (and (<= start pos)
+                          (if at-end-of-text (<= pos end) (< pos end))
+                          (or (null best) (> start (first best))))
+                 (setf best (list start end (tag-name open) closedp))))))
+      (loop for tok across tokens
+            do (case (tag-kind tok)
+                 (:open
+                  (if (void-tag-name-p (tag-name tok))
+                      (consider tok (tag-end tok) t)
+                      (push tok stack)))
+                 (:close
+                  (let ((match (position (tag-name tok) stack
+                                         :key #'tag-name :test #'string-equal)))
+                    (when match
+                      ;; Anything above the match was left unclosed; it is
+                      ;; implicitly closed here, but is not CLOSEDP.
+                      (loop for k from 0 to match
+                            do (consider (pop stack) (tag-end tok) (= k match))))))
+                 ((:self :comment :decl)
+                  (consider tok (tag-end tok) t))))
+      (dolist (open stack)
+        (consider open len nil t)))
+    (when best
+      (values (first best) (second best) (third best) (fourth best)))))
+
+(defun lisp-escape-extent (text start len)
+  "START is the offset of a ,( ,@ or =( escape. Return (values START END)
+where END is just past the escaping form."
+  (let ((i start))
+    (loop while (and (< i len) (member (char text i) '(#\= #\, #\@ #\' #\`)))
+          do (incf i))
+    (cond
+      ((>= i len) (values start len))
+      ((char= (char text i) #\() (values start (skip-lisp-form text i len)))
+      (t
+       (loop while (and (< i len)
+                        (not (whitespacep (char text i)))
+                        (not (member (char text i) '(#\< #\> #\)))))
+             do (incf i))
+       (values start i)))))
+
+(defun enclosing-lisp-section (text pos &optional (len (length text)))
+  "Return (values START END) for the innermost ,( ,@ or =( escape that
+spans POS. With no enclosing escape the whole text is the section, which
+mirrors the Emacs mode's use of point-min and point-max."
+  (let ((best nil)
+        (i 0))
+    (loop
+      (when (>= i (1- len)) (return))
+      (let ((ch (char text i))
+            (next (char text (1+ i))))
+        (cond
+          ((or (and (char= ch #\,) (or (char= next #\() (char= next #\@)))
+               (and (char= ch #\=) (char= next #\()))
+           (multiple-value-bind (start end) (lisp-escape-extent text i len)
+             (when (and (<= start pos) (< pos end)
+                        (or (null best) (> start (first best))))
+               (setf best (list start end))))
+           (incf i))
+          (t (incf i)))))
+    (if best
+        (values (first best) (second best))
+        (values 0 len))))
+
+(defun in-html-p (text pos &optional (tokens (tokenize text)) (len (length text)))
+  "True when POS sits in HTML rather than in Lisp. As in the Emacs mode,
+that means the innermost enclosing element is itself contained in the
+innermost enclosing Lisp escape -- so the point after ,( inside a <div>
+counts as Lisp, not HTML."
+  (multiple-value-bind (html-start html-end) (enclosing-element tokens pos len)
+    (when html-start
+      (multiple-value-bind (lisp-start lisp-end) (enclosing-lisp-section text pos len)
+        (and (<= lisp-start html-start)
+             (<= html-end lisp-end))))))
+
+(defun enclosing-tag-name (text pos &optional (tokens (tokenize text)) (len (length text)))
+  "The name of the innermost element enclosing POS, and whether that
+element is already closed. NIL when there is no enclosing element."
+  (multiple-value-bind (start end name closedp) (enclosing-element tokens pos len)
+    (declare (ignore start end))
+    (values name closedp)))
+
+;;; From buffer to text
+;;; ===================
+;;;
+;;; Everything above works on strings. These bridge to the editor by
+;;; pulling out the text of the top level form around a point, which is
+;;; the same region the fontifier scans.
+
+(defun enclosing-form-region (point)
+  "Return two temporary points bounding the top level form around POINT.
+While a tag is still being typed the form is unbalanced and its end
+cannot be found, in which case the end of the buffer is used."
+  (let ((buffer (editor:point-buffer point)))
+    (editor:with-point ((start point :temporary))
+      (editor:line-start start)
+      (cond
+        ((editor::top-level-offset start -1)
+         (editor:with-point ((end start :temporary))
+           (values (editor:copy-point start :temporary)
+                   (if (editor:form-offset end 1)
+                       (editor:copy-point end :temporary)
+                       (editor:copy-point (editor:buffers-end buffer) :temporary)))))
+        (t
+         (values (editor:copy-point (editor:buffers-start buffer) :temporary)
+                 (editor:copy-point (editor:buffers-end buffer) :temporary)))))))
+
+(defun text-around (point)
+  "Return the text of the top level form around POINT and the offset of
+POINT within it."
+  (multiple-value-bind (start end) (enclosing-form-region point)
+    (values (editor:points-to-string start end)
+            (editor::count-characters start point))))
+
 ;;; Painting
 ;;; ========
 
@@ -360,6 +528,39 @@ prefix argument turn it on, with a negative one turn it off."
     (setf (editor:buffer-minor-mode buffer "Markup") on)
     (refontify buffer)
     (editor:message "Markup mode ~:[disabled~;enabled~]" on)))
+
+
+(editor:defcommand "Markup Close Tag" (p)
+     "Insert a closing tag for the innermost tag around point that has not
+been closed yet."
+     "Insert a closing tag for the innermost unclosed tag."
+  (declare (ignore p))
+  (let ((point (editor:current-point)))
+    (multiple-value-bind (text offset) (text-around point)
+      (multiple-value-bind (name closedp) (enclosing-tag-name text offset)
+        (cond
+          ((null name)
+           (editor:editor-error "No enclosing tag to close"))
+          (closedp
+           ;; The Emacs mode happily inserts a second </span> here. Refusing
+           ;; is more useful, and the auto-close case is unaffected: a tag
+           ;; you are still typing has no closing tag yet.
+           (editor:editor-error "<~a> is already closed" name))
+          (t
+           (editor:insert-string point (format nil "</~a>" name))))))))
+
+(editor:defcommand "Markup Show Context" (p)
+     "Report the innermost enclosing tag around point and whether point is
+in HTML or in Lisp. Useful for checking what the mode thinks is going on."
+     "Report the enclosing tag around point."
+  (declare (ignore p))
+  (let ((point (editor:current-point)))
+    (multiple-value-bind (text offset) (text-around point)
+      (multiple-value-bind (name closedp) (enclosing-tag-name text offset)
+        (editor:message "~:[Lisp~;HTML~]~@[, inside <~a>~]~:[~; (closed)~]"
+                        (in-html-p text offset)
+                        name
+                        (and name closedp))))))
 
 (defun enable ()
   "Entry point for a LispWorks init file. Currently a no-op beyond

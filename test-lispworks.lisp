@@ -17,7 +17,18 @@
                 #:skip-lisp-string
                 #:skip-lisp-form
                 #:tag-name-char-p
-                #:attribute-name-char-p))
+                #:attribute-name-char-p
+                #:tokenize
+                #:tag-kind
+                #:tag-name
+                #:tag-start
+                #:tag-end
+                #:void-tag-name-p
+                #:skip-element-forward
+                #:enclosing-element
+                #:enclosing-lisp-section
+                #:in-html-p
+                #:enclosing-tag-name))
 (in-package #:markup/test-lispworks)
 
 (def-suite* :markup.test-lispworks)
@@ -201,3 +212,231 @@ both report as :TAG."
   (is-false (attribute-name-char-p #\=))
   (is-false (attribute-name-char-p #\Space))
   (is-false (attribute-name-char-p nil)))
+
+
+;;; ==========================================================================
+;;; Navigating elements
+;;; ==========================================================================
+;;;
+;;; The helpers below take a string in which a single | marks the point of
+;;; interest, which keeps the expectations readable.
+
+(defun split-at-caret (text)
+  "Return (values TEXT-WITHOUT-CARET POSITION-OF-CARET)."
+  (let ((pos (position #\| text)))
+    (assert pos () "Test string has no | marker: ~s" text)
+    (values (remove #\| text) pos)))
+
+(defun kinds (text)
+  (loop for tok across (tokenize text) collect (tag-kind tok)))
+
+(defun names (text)
+  (loop for tok across (tokenize text) collect (tag-name tok)))
+
+(defun spans (text)
+  (loop for tok across (tokenize text) collect (list (tag-start tok) (tag-end tok))))
+
+(defun element-span (text)
+  "(list START END) of the innermost element around the caret, or NIL."
+  (multiple-value-bind (s pos) (split-at-caret text)
+    (multiple-value-bind (start end) (enclosing-element (tokenize s) pos (length s))
+      (when start (list start end)))))
+
+(defun element-name (text)
+  (multiple-value-bind (s pos) (split-at-caret text)
+    (nth-value 2 (enclosing-element (tokenize s) pos (length s)))))
+
+(defun lisp-section (text)
+  (multiple-value-bind (s pos) (split-at-caret text)
+    (multiple-value-list (enclosing-lisp-section s pos))))
+
+(defun html-at-caret-p (text)
+  (multiple-value-bind (s pos) (split-at-caret text)
+    (in-html-p s pos)))
+
+(defun tag-to-close (text)
+  (multiple-value-bind (s pos) (split-at-caret text)
+    (enclosing-tag-name s pos)))
+
+(defun tag-closed-p (text)
+  (multiple-value-bind (s pos) (split-at-caret text)
+    (nth-value 1 (enclosing-tag-name s pos))))
+
+;;; Tokenizing
+
+(test tokenize-classifies-each-kind
+  (is (equal '(:open :close) (kinds "<div></div>")))
+  (is (equal '(:self) (kinds "<br />")))
+  (is (equal '(:open) (kinds "<br>")))
+  (is (equal '(:comment) (kinds "<!-- hi -->")))
+  (is (equal '(:decl) (kinds "<!DOCTYPE html>"))))
+
+(test tokenize-records-names-and-spans
+  (is (equal '("div" "div") (names "<div></div>")))
+  (is (equal '((0 5) (5 11)) (spans "<div></div>"))))
+
+(test tokenize-skips-non-tags
+  (is (equal '() (kinds "(when (< a b) 1)")))
+  ;; the < in (< a b) is not a tag; the two tokens are <span> and </span>
+  (is (equal '("span" "span") (names "<span>,(if (< a b) 1 2)</span>")))
+  (is (equal '(:open :close) (kinds "<span>,(if (< a b) 1 2)</span>"))))
+
+(test tokenize-does-not-see-inside-comments-or-tags
+  ;; A < inside an HTML comment or inside a tag's attributes must not
+  ;; become a token of its own.
+  (is (equal '(:comment) (kinds "<!-- <div> <span> -->")))
+  (is (equal '(:open) (kinds "<div class=(if (< a b) \"x\" \"y\")>"))))
+
+;;; Void tags
+
+(test void-tag-names
+  (is-true (void-tag-name-p "br"))
+  (is-true (void-tag-name-p "BR"))
+  (is-true (void-tag-name-p "img"))
+  (is-true (void-tag-name-p "input"))
+  (is-false (void-tag-name-p "div"))
+  (is-false (void-tag-name-p nil)))
+
+;;; skip-element-forward
+
+(test skip-over-a-simple-element
+  (is (= 11 (skip-element-forward (tokenize "<div></div>") 0)))
+  (is (= 24 (skip-element-forward (tokenize "<div><span></span></div>") 0))))
+
+(test skip-returns-the-index-of-the-following-token
+  (is (= 2 (nth-value 1 (skip-element-forward (tokenize "<div></div>") 0))))
+  (is (= 4 (nth-value 1 (skip-element-forward (tokenize "<div><span></span></div>") 0)))))
+
+(test skip-counts-nesting-of-the-same-name
+  (let ((text "<div><div></div></div>"))
+    (is (= (length text) (skip-element-forward (tokenize text) 0)))))
+
+(test skip-over-self-closing-and-void-elements
+  (is (= 6 (skip-element-forward (tokenize "<br />") 0)))
+  (is (= 4 (skip-element-forward (tokenize "<br>") 0)))
+  ;; A self-closing element ends at its own >, not at whatever follows.
+  (let ((tokens (tokenize "<img src=\"x\" /><p></p>")))
+    (is (= 15 (skip-element-forward tokens 0)))
+    (is (= 22 (skip-element-forward tokens 1)))))
+
+(test skip-over-an-unterminated-element-fails
+  (is (null (skip-element-forward (tokenize "<div>") 0)))
+  (is (null (skip-element-forward (tokenize "<div><span></span>") 0))))
+
+(test skip-tolerates-a-missing-inner-close
+  ;; <span> is never closed, but </div> still ends the div.
+  (let ((text "<div><span></div>"))
+    (is (= (length text) (skip-element-forward (tokenize text) 0)))))
+
+(test skip-from-a-closing-tag-is-not-an-element
+  (is (null (skip-element-forward (tokenize "</div>") 0))))
+
+;;; enclosing-element
+
+(test innermost-enclosing-element
+  (is (equal "div" (element-name "<div>|</div>")))
+  (is (equal "span" (element-name "<div><span>|</span></div>")))
+  (is (equal "div" (element-name "<div><span></span>|</div>"))))
+
+(test enclosing-element-span
+  (is (equal '(0 11) (element-span "<div>|</div>"))))
+
+(test point-inside-a-tag-is-inside-that-element
+  (is (equal "div" (element-name "<div |class=\"x\">y</div>")))
+  (is (equal "br" (element-name "<br |/>")))
+  (is (equal "img" (element-name "<img |src=\"x\">"))))
+
+(test an-unclosed-element-runs-to-the-end-of-the-text
+  ;; This is what makes the auto-close command work while you are still
+  ;; typing the element.
+  (is (equal "div" (element-name "<div>|")))
+  (is (equal "span" (element-name "<div><span>|"))))
+
+(test no-enclosing-element
+  (is (null (element-name "(defun foo (|))")))
+  (is (null (element-name "<div></div>|"))))
+
+(test the-very-start-of-a-tag-counts-as-being-inside-it
+  ;; Matches the Emacs mode, whose containment test is
+  ;; (and (<= start point) (< point end)).
+  (is (equal "div" (element-name "|<div></div>"))))
+
+(test a-void-element-does-not-enclose-what-follows-it
+  (is (equal "div" (element-name "<div><br>|</div>"))))
+
+;;; enclosing-lisp-section
+
+(test with-no-escape-the-whole-text-is-the-section
+  (is (equal '(0 14) (lisp-section "(defun foo (|))"))))
+
+(test innermost-lisp-escape
+  ;; Offsets are into the text with the caret removed, so ,(foo ) spans 5..12.
+  (is (equal '(5 12) (lisp-section "<div>,(foo |)</div>")))
+  (is (equal '(5 12) (lisp-section "<div>=(foo |)</div>"))))
+
+(test nested-lisp-escapes
+  (is (equal '(9 14) (lisp-section "<div>,(a ,(b |) c)</div>"))))
+
+(test a-point-outside-any-escape-gets-the-whole-text
+  (let ((text "<div>,(foo)</div>"))
+    (is (equal (list 0 (length text)) (lisp-section "<div>,(foo)</div>|")))))
+
+;;; in-html-p
+
+(test text-inside-an-element-is-html
+  (is-true (html-at-caret-p "<div>|</div>"))
+  (is-true (html-at-caret-p "<div>hello |world</div>")))
+
+(test inside-a-lisp-escape-is-not-html
+  (is-false (html-at-caret-p "<div>,(progn |)</div>"))
+  (is-false (html-at-caret-p "<div>,(foo (bar |))</div>"))
+  (is-false (html-at-caret-p "<img src=(logo |) />")))
+
+(test plain-lisp-is-not-html
+  (is-false (html-at-caret-p "(defun foo (|))"))
+  (is-false (html-at-caret-p "(list 1 2 |3)")))
+
+(test markup-nested-back-inside-a-lisp-escape-is-html-again
+  (is-true (html-at-caret-p "<div>,(progn <span>|</span>)</div>")))
+
+(test inside-a-tags-attributes-is-html
+  (is-true (html-at-caret-p "<div |class=\"x\">y</div>")))
+
+;;; unclosed-tag-name
+
+(test the-tag-a-closing-tag-would-close
+  (is (equal "div" (tag-to-close "<div>|")))
+  (is (equal "span" (tag-to-close "<div><span>|"))))
+
+(test a-closed-inner-element-is-skipped
+  ;; The example from the Emacs mode's docstring: with point on the blank
+  ;; line, </div> is what should be inserted.
+  (is (equal "div" (tag-to-close (format nil "<div>~%  <span></span>~%  |~%")))))
+
+(test keyword-tags-can-be-closed
+  (is (equal ":my-tag" (tag-to-close "<:my-tag>|"))))
+
+(test nothing-to-close
+  (is (null (tag-to-close "(defun foo (|))")))
+  (is (null (tag-to-close "<div></div>|"))))
+
+;;; Whether the enclosing element is already closed
+
+(test an-element-still-being-typed-is-not-closed
+  (is-false (tag-closed-p "<div>|"))
+  (is-false (tag-closed-p "<div><span>|"))
+  (is-false (tag-closed-p (format nil "<div>~%  <span></span>~%  |~%"))))
+
+(test an-element-with-its-own-closing-tag-is-closed
+  (is-true (tag-closed-p "<div>|</div>"))
+  (is-true (tag-closed-p "<div><span>|</span></div>")))
+
+(test an-implicitly-closed-inner-element-is-not-closed
+  ;; <span> has no </span> of its own; the </div> ends it. Closing it is
+  ;; still the useful thing to offer.
+  (is (equal "span" (tag-to-close "<div><span>|</div>")))
+  (is-false (tag-closed-p "<div><span>|</div>")))
+
+(test void-and-self-closing-elements-count-as-closed
+  (is-true (tag-closed-p "<br |>"))
+  (is-true (tag-closed-p "<br |/>")))
