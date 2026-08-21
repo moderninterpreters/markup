@@ -428,6 +428,28 @@ counts as Lisp, not HTML."
         (and (<= lisp-start html-start)
              (<= html-end lisp-end))))))
 
+(defun html-position-p (text pos &optional (tokens (tokenize text)) (len (length text)))
+  "True when markup, rather than Lisp, is what sits at POS. Unlike
+IN-HTML-P this also counts a position on which a tag itself begins:
+containment is strict, so the start of a <div> line is not inside that
+div, but a comment inserted there still wants HTML syntax."
+  (or (and (< pos len)
+           (char= (char text pos) #\<)
+           (tag-at text pos len)
+           t)
+      (in-html-p text pos tokens len)))
+
+(defun html-position-p (text pos &optional (tokens (tokenize text)) (len (length text)))
+  "True when markup, rather than Lisp, is what sits at POS. Unlike
+IN-HTML-P this also counts a position on which a tag itself begins:
+containment is strict, so the start of a <div> line is not inside that
+div, but a comment inserted there still wants HTML syntax."
+  (or (and (< pos len)
+           (char= (char text pos) #\<)
+           (tag-at text pos len)
+           t)
+      (in-html-p text pos tokens len)))
+
 (defun enclosing-tag-name (text pos &optional (tokens (tokenize text)) (len (length text)))
   "The name of the innermost element enclosing POS, and whether that
 element is already closed. NIL when there is no enclosing element."
@@ -488,6 +510,16 @@ POINT within it."
   "The column POS sits at, counting characters from the start of its line."
   (let ((bol (position #\Newline text :end pos :from-end t)))
     (if bol (- pos bol 1) pos)))
+
+(defun line-start-offset (text pos)
+  "The offset of the start of the line POS sits on."
+  (let ((nl (position #\Newline text :end pos :from-end t)))
+    (if nl (1+ nl) 0)))
+
+(defun line-start-offset (text pos)
+  "The offset of the start of the line POS sits on."
+  (let ((nl (position #\Newline text :end pos :from-end t)))
+    (if nl (1+ nl) 0)))
 
 (defun line-content-offset (text bol)
   "The offset of the first non-blank character of the line starting at BOL,
@@ -672,8 +704,104 @@ in HTML or in Lisp. Useful for checking what the mode thinks is going on."
                         name
                         (and name closedp))))))
 
+(defun completes-close-tag-p (point)
+  "True when the two characters before POINT are </."
+  (editor:with-point ((p point :temporary))
+    (and (editor:character-offset p -2)
+         (eql (editor::next-character p) #\<))))
+
+(editor:defcommand "Markup Insert /" (p)
+     "Insert a /. When that completes a </, also insert the name of the
+innermost unclosed tag and the closing >, then re-indent the line."
+     "Insert a /, completing a closing tag when it follows a <."
+  (declare (ignore p))
+  (let ((point (editor:current-point)))
+    (editor:insert-character point #\/)
+    (when (completes-close-tag-p point)
+      (multiple-value-bind (text offset) (text-around point)
+        (let ((name (enclosing-tag-name text offset)))
+          (when name
+            (editor:insert-string point name)
+            (unless (eql (editor::next-character point) #\>)
+              (editor:insert-character point #\>))
+            (markup-indent-line point)))))))
+
+(editor:defcommand "Markup Insert Tag" (p)
+     "Prompt for a tag name and insert an opening and closing tag, leaving
+point between them. Void tags such as br are inserted self-closed."
+     "Insert a tag, leaving point between the opening and closing tags."
+  (declare (ignore p))
+  (let ((point (editor:current-point))
+        (name (editor:prompt-for-string :prompt "Tag: "
+                                        :help "Name of the tag to insert.")))
+    (when (plusp (length name))
+      (cond
+        ((void-tag-name-p name)
+         (editor:insert-string point (format nil "<~a />" name)))
+        (t
+         (editor:insert-string point (format nil "<~a></~a>" name name))
+         ;; back up over the </name> just inserted
+         (editor:character-offset point (- (+ 3 (length name)))))))))
+
+(defun set-comment-style (buffer htmlp)
+  "Point the editor's comment variables at HTML or Lisp comment syntax."
+  (setf (editor:variable-value 'editor:comment-start :buffer buffer)
+        (if htmlp "<!--" ";")
+        (editor:variable-value 'editor:comment-begin :buffer buffer)
+        (if htmlp "<!--" ";")
+        (editor:variable-value 'editor:comment-end :buffer buffer)
+        (if htmlp "-->" nil)))
+
+(editor:defcommand "Markup Comment Region" (p)
+     "Comment out the region, using <!-- --> when it starts in HTML and ;
+when it starts in Lisp. With a prefix argument, uncomment instead."
+     "Comment out the region, in HTML or Lisp syntax as appropriate."
+  (let* ((buffer (editor:current-buffer))
+         (point (editor:current-point))
+         (mark (ignore-errors (editor:current-mark)))
+         (start (if (and mark (editor:point< mark point)) mark point)))
+    (multiple-value-bind (text offset) (text-around start)
+      (let ((content (line-content-offset text (line-start-offset text offset))))
+        (set-comment-style buffer (html-position-p text content))))
+    (editor::comment-region-command p)))
+
+;;; Turning the mode on automatically
+;;; =================================
+
+(defun markup-source-p (text)
+  "True when TEXT looks like Lisp source that uses markup's reader."
+  (and (or (search "markup:enable-reader" text)
+           (and (search "markup:syntax" text)
+                (search "in-readtable" text)))
+       t))
+
+(defun markup-buffer-p (buffer)
+  "True when BUFFER looks like it uses markup's reader. The file type hook
+that sets Lisp mode runs after the file has been read, so the buffer is
+already populated when this is called from the Lisp mode hook."
+  (markup-source-p (editor:points-to-string (editor:buffers-start buffer)
+                                            (editor:buffers-end buffer))))
+
+(defun maybe-enable-markup-mode (buffer on-p)
+  (when (and on-p
+             (not (editor:buffer-minor-mode buffer "Markup"))
+             (markup-buffer-p buffer))
+    (setf (editor:buffer-minor-mode buffer "Markup") t)))
+
+(editor:add-global-hook editor:lisp-mode-hook 'maybe-enable-markup-mode)
+
+;;; Key bindings
+;;; ============
+;;;
+;;; Scoped to the Markup mode, so they only apply where the mode is on.
+
+(editor:bind-key "Markup Insert /" #\/ :mode "Markup")
+(editor:bind-key "Markup Insert Tag" #("Control-c" "Control-o") :mode "Markup")
+(editor:bind-key "Markup Close Tag" #("Control-c" "Control-e") :mode "Markup")
+
 (defun enable ()
-  "Entry point for a LispWorks init file. Currently a no-op beyond
-loading this file, which defines the \"Markup\" mode and the
-\"Markup Mode\" command."
+  "Entry point for a LispWorks init file, though loading this file is
+already enough: it defines the \"Markup\" mode and its commands, binds the
+mode's keys, and arranges for the mode to switch itself on in Lisp buffers
+that use markup's reader."
   (values))

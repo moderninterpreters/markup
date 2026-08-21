@@ -32,7 +32,10 @@
                 #:markup-indent-column
                 #:column-of
                 #:line-content-offset
-                #:closes-tag-p))
+                #:closes-tag-p
+                #:html-position-p
+                #:line-start-offset
+                #:markup-source-p))
 (in-package #:markup/test-lispworks)
 
 (def-suite* :markup.test-lispworks)
@@ -537,3 +540,54 @@ the way running Indent Region over the whole form would."
 (test continuation-lines-align-under-the-first-attribute
   (is (string= (format nil "<div>~%  <a href=\"x\"~%     id=\"y\">~%    hi~%  </a>~%</div>~%")
                (reindent (format nil "<div>~%<a href=\"x\"~%     id=\"y\">~%hi~%</a>~%</div>~%")))))
+
+
+;;; ==========================================================================
+;;; Editing commands
+;;; ==========================================================================
+
+(defun html-here-p (text)
+  "TEXT marks the position of interest with |."
+  (multiple-value-bind (s pos) (split-at-caret text)
+    (html-position-p s pos)))
+
+(test line-start-offset-finds-the-start-of-the-line
+  (is (= 0 (line-start-offset "abc" 2)))
+  (is (= 3 (line-start-offset (format nil "ab~%cd") 4)))
+  (is (= 0 (line-start-offset (format nil "ab~%cd") 1))))
+
+;;; Which comment syntax a position wants
+
+(test a-position-on-a-tag-wants-html-comments
+  ;; IN-HTML-P alone says no here, because containment is strict and the
+  ;; div begins at the position. For choosing a comment syntax it should
+  ;; still be HTML, which is what HTML-POSITION-P adds.
+  (is-true (html-here-p "|<div>x</div>"))
+  (is-true (html-here-p "|</div>"))
+  (is-true (html-here-p "|<br />")))
+
+(test a-position-inside-markup-wants-html-comments
+  (is-true (html-here-p "<div>|hello</div>"))
+  (is-true (html-here-p "<div>|<p>x</p></div>")))
+
+(test an-existing-html-comment-wants-html-comments
+  ;; This is what makes uncommenting work: the region now starts with the
+  ;; <!-- that was inserted when it was commented.
+  (is-true (html-here-p "|<!-- <div> -->")))
+
+(test a-lisp-position-wants-lisp-comments
+  (is-false (html-here-p "|(defun foo ())"))
+  (is-false (html-here-p "(defun foo (|))"))
+  (is-false (html-here-p "<div>,(progn |)</div>"))
+  (is-false (html-here-p "(list 1 |2)")))
+
+;;; Recognising a buffer that uses markup's reader
+
+(test markup-source-is-recognised
+  (is-true (markup-source-p "(markup:enable-reader)"))
+  (is-true (markup-source-p (format nil "(defpackage :x)~%(markup:enable-reader)~%")))
+  (is-true (markup-source-p "(named-readtables:in-readtable markup:syntax)"))
+  (is-false (markup-source-p "(defun foo () (list 1 2))"))
+  ;; markup:syntax on its own is not enough; it needs the in-readtable too
+  (is-false (markup-source-p ";; see markup:syntax for details"))
+  (is-false (markup-source-p "")))
