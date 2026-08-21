@@ -35,7 +35,10 @@
   "Face for keyword tag names, e.g. the \":my-tag\" in <:my-tag>.")
 
 (defvar *comment-face* editor::*font-lock-comment-face*
-  "Face for <!-- HTML comments -->.")
+  "Face for <!-- HTML comments --> and for Lisp comments.")
+
+(defvar *string-face* editor::*font-lock-string-face*
+  "Face for Lisp strings and for quoted attribute values.")
 
 (defvar *attribute-face*
   (editor:make-face 'markup-attribute-face
@@ -301,6 +304,174 @@ top level, so this also covers nested ones."
                                                           (tag-end tok)
                                                           acc)))))))
     (setf acc (scan-deftags text len acc))
+    (stable-sort (nreverse acc) #'< :key #'first)))
+
+
+;;; Syntactic fontification
+;;; =======================
+;;;
+;;; LispWorks' syntactic pass treats the whole buffer as Lisp, so a ; in
+;;; CSS or in tag text starts a comment that swallows the rest of the line:
+;;;
+;;;   <style>
+;;;     body { color: #333; margin: 0; }    <- from the ; onwards, a comment
+;;;   </style>
+;;;
+;;; This scanner knows the difference. It walks the text once, applying Lisp
+;;; rules where the text is Lisp and markup rules where it is markup, so a ;
+;;; in tag text is just a semicolon while one in a ,( ... ) escape still
+;;; starts a comment.
+
+(defun scan-syntax (text)
+  "Return the list of (FROM TO FACE) syntactic highlights for TEXT,
+ordered by FROM: Lisp strings and comments in Lisp, quoted attribute
+values and <!-- --> comments in markup."
+  (let* ((len (length text))
+         (acc '())
+         (paren-faces (when editor::*parenthesis-font-faces*
+                        (editor::font-lock-ensure-parenthesis-font-faces-vector)))
+         (paren-index 0))
+    (labels
+        ((paint (from to face)
+           (when (< from to) (push (list from to face) acc)))
+
+         (paint-parens (i)
+           "Colour the ( at I and its matching ), the way LispWorks' own
+syntactic pass does, cycling through the parenthesis faces."
+           (when paren-faces
+             (when (and (> i 0) (char= (char text (1- i)) #\Newline))
+               (setf paren-index 0))
+             (let ((face (svref paren-faces paren-index))
+                   (end (skip-lisp-form text i len)))
+               (setf paren-index (mod (1+ paren-index) (length paren-faces)))
+               (paint i (1+ i) face)
+               (when (and (> end i) (char= (char text (1- end)) #\)))
+                 (paint (1- end) end face)))))
+
+         (at (i) (and (< i len) (char text i)))
+
+         (string-at (i)
+           (let ((end (skip-lisp-string text i len)))
+             (paint i end *string-face*)
+             end))
+
+         (line-comment-at (i)
+           (let ((end (or (position #\Newline text :start i) len)))
+             (paint i end *comment-face*)
+             end))
+
+         (block-comment-at (i)
+           (let* ((close (search "|#" text :start2 (min len (+ i 2))))
+                  (end (if close (+ close 2) len)))
+             (paint i end *comment-face*)
+             end))
+
+         (conditionalization-at (i)
+           "#+feature / #-feature, greyed like a comment as LispWorks does."
+           (let* ((j (+ i 2))
+                  (end (if (eql (at j) #\()
+                           (skip-lisp-form text j len)
+                           (let ((k j))
+                             (loop while (and (< k len)
+                                              (not (whitespacep (char text k)))
+                                              (not (member (char text k) '(#\( #\)))))
+                                   do (incf k))
+                             k))))
+             (paint i end editor::*font-lock-conditionalization-face*)
+             (max (1+ i) end)))
+
+         (bars-at (i)
+           ;; |a symbol with ; and " in it|
+           (let ((close (position #\| text :start (1+ i))))
+             (if close (1+ close) len)))
+
+         (scan-lisp (i limit)
+           "Lisp rules from I up to LIMIT, dropping into markup at a tag."
+           (loop while (< i limit)
+                 do (let ((ch (char text i)))
+                      (cond
+                        ((char= ch #\;) (setf i (line-comment-at i)))
+                        ((char= ch #\") (setf i (string-at i)))
+                        ((char= ch #\|) (setf i (bars-at i)))
+                        ((and (char= ch #\#) (eql (at (1+ i)) #\|))
+                         (setf i (block-comment-at i)))
+                        ;; #\; and #\" are characters, not syntax
+                        ((and (char= ch #\#) (eql (at (1+ i)) #\\))
+                         (incf i 3))
+                        ((and (char= ch #\#) (member (at (1+ i)) '(#\+ #\-)))
+                         (setf i (conditionalization-at i)))
+                        ((char= ch #\()
+                         (paint-parens i)
+                         (incf i))
+                        ((and (char= ch #\<) (tag-at text i len))
+                         (setf i (max (1+ i) (scan-element i))))
+                        (t (incf i)))))
+           i)
+
+         (scan-attributes-syntax (i limit)
+           "Inside a tag: quoted values are strings, ( ... ) values are Lisp."
+           (loop while (< i limit)
+                 do (let ((ch (char text i)))
+                      (cond
+                        ((char= ch #\") (setf i (string-at i)))
+                        ((char= ch #\()
+                         (let ((end (skip-lisp-form text i len)))
+                           (scan-lisp i end)
+                           (setf i (max (1+ i) end))))
+                        (t (incf i))))))
+
+         (scan-escape (i)
+           "A ,( ,@( =( or `( escape in markup: its body is Lisp."
+           (let ((j i))
+             (loop while (and (< j len) (member (char text j) '(#\, #\@ #\' #\` #\=)))
+                   do (incf j))
+             (cond
+               ((eql (at j) #\()
+                (let ((end (skip-lisp-form text j len)))
+                  (scan-lisp j end)
+                  (max (1+ i) end)))
+               (t (max (1+ i) j)))))
+
+         (scan-content (i name)
+           "Markup content up to the closing tag for NAME. A ; here is just
+a semicolon."
+           (loop while (< i len)
+                 do (let ((ch (char text i)))
+                      (cond
+                        ((char= ch #\<)
+                         (let ((tag (tag-at text i len)))
+                           (cond
+                             ((null tag) (incf i))
+                             ((eq (tag-kind tag) :close)
+                              (if (string-equal name (tag-name tag))
+                                  (return-from scan-content (tag-end tag))
+                                  (setf i (tag-end tag))))
+                             (t (setf i (max (1+ i) (scan-element i)))))))
+                        ((and (member ch '(#\, #\`))
+                              (member (at (1+ i)) '(#\( #\@)))
+                         (setf i (scan-escape i)))
+                        (t (incf i)))))
+           len)
+
+         (scan-element (j)
+           "J is at the < of a tag. Returns the offset just past the element."
+           (let ((tag (tag-at text j len)))
+             (cond
+               ((null tag) (1+ j))
+               ((eq (tag-kind tag) :comment)
+                (paint j (tag-end tag) *comment-face*)
+                (tag-end tag))
+               ((eq (tag-kind tag) :decl) (tag-end tag))
+               (t
+                (scan-attributes-syntax (tag-attrs-start tag)
+                                        (max (tag-attrs-start tag)
+                                             (1- (tag-end tag))))
+                (if (or (eq (tag-kind tag) :self)
+                        (eq (tag-kind tag) :close)
+                        (void-tag-name-p (tag-name tag)))
+                    (tag-end tag)
+                    (scan-content (tag-end tag) (tag-name tag))))))))
+      (scan-lisp 0 len))
     (stable-sort (nreverse acc) #'< :key #'first)))
 
 ;;; Navigating elements
@@ -630,6 +801,17 @@ stale face behind."
               (when (editor:character-offset q (- to from))
                 (editor::font-lock-apply-highlight p q face)))))))))
 
+(defun fontify-syntactically-region (start end)
+  "The Markup mode's font-lock syntactic pass, replacing the Lisp one so
+that a ; in tag text or CSS is not treated as a comment."
+  (let ((buffer (editor:point-buffer start)))
+    (editor:with-buffer-locked (buffer :for-modification nil
+                                       :check-file-modification nil)
+      (let* ((base (scan-region-start start))
+             (min-offset (editor::count-characters base start))
+             (text (editor:points-to-string base end)))
+        (apply-highlights base (scan-syntax text) min-offset)))))
+
 (defun fontify-keywords-region (start end)
   "The Markup mode's font-lock keyword pass. Paints the markup-specific
 highlights first so they win over the Lisp ones on the rare overlap, then
@@ -648,7 +830,9 @@ lambda-list markers and def-forms still get their usual faces."
 ;;; ========
 
 (editor:defmode "Markup"
-                :vars '((editor::font-lock-fontify-keywords-region-function
+                :vars '((editor::font-lock-fontify-syntactically-region-function
+                         . fontify-syntactically-region)
+                        (editor::font-lock-fontify-keywords-region-function
                          . fontify-keywords-region)
                         (editor::indent-function . markup-indent-line)
                         ;; Line by line, like the Emacs mode: less efficient

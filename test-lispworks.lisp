@@ -35,7 +35,8 @@
                 #:closes-tag-p
                 #:html-position-p
                 #:line-start-offset
-                #:markup-source-p))
+                #:markup-source-p
+                #:scan-syntax))
 (in-package #:markup/test-lispworks)
 
 (def-suite* :markup.test-lispworks)
@@ -591,3 +592,106 @@ the way running Indent Region over the whole form would."
   ;; markup:syntax on its own is not enough; it needs the in-readtable too
   (is-false (markup-source-p ";; see markup:syntax for details"))
   (is-false (markup-source-p "")))
+
+
+;;; ==========================================================================
+;;; Syntactic fontification
+;;; ==========================================================================
+
+(defun syntax-tag (face)
+  (cond
+    ((eq face markup/lispworks::*string-face*) :string)
+    ((eq face markup/lispworks::*comment-face*) :comment)
+    ((eq face editor::*font-lock-conditionalization-face*) :comment)
+    ((find face (editor::font-lock-ensure-parenthesis-font-faces-vector)) :paren)
+    (t face)))
+
+(defun syntax (text)
+  "Run SCAN-SYNTAX over TEXT and return (SUBSTRING TAG) pairs, dropping
+the parenthesis colouring so the interesting parts stand out."
+  (loop for (from to face) in (scan-syntax text)
+        for tag = (syntax-tag face)
+        unless (eq tag :paren)
+          collect (list (subseq text from to) tag)))
+
+;;; Lisp keeps its own syntax
+
+(test lisp-comments-and-strings-are-still-fontified
+  (is (equal '(("; hi" :comment)) (syntax "; hi")))
+  (is (equal '((";; hi" :comment)) (syntax (format nil ";; hi~%(foo)"))))
+  (is (equal '(("\"a\"" :string)) (syntax "(f \"a\")")))
+  (is (equal '(("#| block |#" :comment)) (syntax "#| block |#"))))
+
+(test a-semicolon-inside-a-lisp-string-is-not-a-comment
+  (is (equal '(("\"a ; b\"" :string)) (syntax "(f \"a ; b\")"))))
+
+(test a-semicolon-character-literal-is-not-a-comment
+  (is (equal '() (syntax "(f #\\; 1)"))))
+
+(test reader-conditionals-are-greyed
+  (is (equal '(("#+lispworks" :comment)) (syntax "#+lispworks (f)")))
+  (is (equal '(("#-(or a b)" :comment)) (syntax "#-(or a b) (f)"))))
+
+;;; Markup does not
+
+(test a-semicolon-in-tag-text-is-not-a-comment
+  ;; The whole point of this pass.
+  (is (equal '() (syntax "<p>a ; b</p>")))
+  (is (equal '() (syntax "<style>body { margin: 0; padding: 0; }</style>"))))
+
+(test a-quote-in-tag-text-does-not-start-a-string
+  (is (equal '() (syntax "<p>He said \"hi\" loudly</p>"))))
+
+(test an-unbalanced-quote-in-tag-text-is-harmless
+  ;; Under the Lisp pass this would have made the rest of the form a string.
+  (is (equal '() (syntax "<p>5\" of rain</p>"))))
+
+(test html-comments-are-comments
+  (is (equal '(("<!-- hi -->" :comment)) (syntax "<div><!-- hi --></div>"))))
+
+(test quoted-attribute-values-are-strings
+  (is (equal '(("\"a\"" :string)) (syntax "<div class=\"a\">x</div>")))
+  (is (equal '(("\"a\"" :string) ("\"b\"" :string))
+             (syntax "<div class=\"a\" id=\"b\">x</div>"))))
+
+;;; The boundary between the two
+
+(test lisp-inside-a-markup-escape-keeps-lisp-syntax
+  (is (equal '(("\"s\"" :string)) (syntax "<p>,(f \"s\")</p>")))
+  (is (equal '((";; c" :comment))
+             (syntax (format nil "<p>,(progn~%;; c~%1)</p>")))))
+
+(test a-semicolon-in-a-string-inside-an-escape-is-still-a-string
+  (is (equal '(("\"a ; b\"" :string)) (syntax "<p>,(f \"a ; b\")</p>"))))
+
+(test lisp-inside-an-attribute-value-keeps-lisp-syntax
+  (is (equal '(("\"s\"" :string)) (syntax "<img src=(f \"s\") />"))))
+
+(test markup-nested-inside-lisp-inside-markup
+  (is (equal '() (syntax "<div>,(progn <p>a ; b</p>)</div>")))
+  (is (equal '(("\"s\"" :string))
+             (syntax "<div>,(progn <p class=\"s\">x</p>)</div>"))))
+
+(test text-after-a-closed-element-is-lisp-again
+  (is (equal '(("; a comment" :comment))
+             (syntax (format nil "(f <p>x</p>)~%; a comment")))))
+
+(test a-tag-inside-a-lisp-string-is-not-markup
+  ;; The string wins, so the ; inside it stays part of the string.
+  (is (equal '(("\"<p>a ; b</p>\"" :string)) (syntax "(f \"<p>a ; b</p>\")"))))
+
+;;; Robustness
+
+(test unterminated-input-does-not-loop
+  (is (listp (scan-syntax "<div>")))
+  (is (listp (scan-syntax "<div><span>")))
+  (is (listp (scan-syntax "(f \"unterminated")))
+  (is (listp (scan-syntax "<p>,(f")))
+  (is (listp (scan-syntax "#|")))
+  (is (listp (scan-syntax "</div>")))
+  (is (listp (scan-syntax ""))))
+
+(test highlights-come-back-in-order
+  (let ((result (scan-syntax "<div class=\"a\">,(f \"b\")<!-- c --></div>")))
+    (is (equal (mapcar #'first result)
+               (sort (mapcar #'first (copy-list result)) #'<)))))
